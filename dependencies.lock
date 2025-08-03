@@ -1,0 +1,51 @@
+dependencies:
+  espressif/led_strip:
+    component_hash: 28c6509a727ef74925b372ed404772aeedf11cce10b78c3f69b3c66799095e2d
+    dependencies:
+    - name: idf
+      require: private
+      version: '>=4.4'
+    source:
+      registry_url: https://components.espressif.com/
+      type: service
+    version: 2.5.5
+  espressif/tinyusb:
+    component_hash: 10703da2c3cd39a944711ee3d320c6dda54debabf13b4b933a7c90daf102372b
+    dependencies:
+    - name: idf
+      require: private
+      version: '>=5.0'
+    source:
+      registry_url: https://components.espressif.com/
+      type: service
+    targets:
+    - esp32s2
+    - esp32s3
+    - esp32p4
+    version: 0.18.0~2
+  idf:
+    source:
+      type: idf
+    version: 5.4.1
+  lijunru-hub/keyboard_rgb_matrix:
+    component_hash: ecbe8ec9acf97272b90de19f0c0f229bcbaf4c1f7cca0518593d623f578e1bc4
+    dependencies:
+    - name: idf
+      require: private
+      version: '>=5.0'
+    - name: espressif/led_strip
+      registry_url: https://components.espressif.com
+      require: private
+      version: ^2.5.3
+    source:
+      registry_url: https://components.espressif.com/
+      type: service
+    version: 0.1.2
+direct_dependencies:
+- espressif/led_strip
+- espressif/tinyusb
+- idf
+- lijunru-hub/keyboard_rgb_matrix
+manifest_hash: 394d906f23b50456138553f62600332d0e6d2e065e6fdea8fdc44a0e376df1ab
+target: esp32s3
+version: 2.0.0

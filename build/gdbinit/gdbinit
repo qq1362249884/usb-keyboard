@@ -1,0 +1,2 @@
+source D:/Desktop/my-esp32-project/usb-keyboard/build/gdbinit/symbols
+source D:/Desktop/my-esp32-project/usb-keyboard/build/gdbinit/connect

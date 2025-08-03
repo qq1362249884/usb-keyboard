@@ -1,0 +1,9 @@
+version: 0.2.2
+dependencies:
+  idf: ">=5.2"
+  espressif/tinyusb:
+    version: ">=0.15.0~2"
+  led_strip:
+    version: "^2.5.3"
+  lijunru-hub/keyboard_rgb_matrix:
+    version: "^0.1.2"
