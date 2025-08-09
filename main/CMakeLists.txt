@@ -3,6 +3,8 @@ set(src_dirs
                 keyboard_led
                 spi_scanner
                 tinyusb_hid
+                joystick
+                nvs_manager
                 "../hid_device")
 
 set(include_dirs 
@@ -10,6 +12,8 @@ set(include_dirs
                 keyboard_led
                 spi_scanner
                 tinyusb_hid
+                joystick
+                nvs_manager
                 "../hid_device")
 
 set(requires esp_timer
@@ -18,7 +22,9 @@ set(requires esp_timer
              nvs_flash
              esp_http_server
              esp_wifi
-             usb)
+             usb
+             esp_adc
+             )
 
 # 定义需要嵌入到固件中的静态文件
 # set(embed_files

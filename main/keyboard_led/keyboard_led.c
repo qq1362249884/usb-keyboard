@@ -16,16 +16,16 @@ led_config_t g_led_config =
         {0, 1, 2, 3},
         {4, 5, 6, 7},
         {8, 9, 10,NO_LED},
-        {11, 12, 13, 14},
-        {15, 16,NO_LED,NO_LED}
+        {11, 12, 13, NO_LED},
+        {14,NO_LED, 15,16}
     },
     {
         // LED Index to Physical Position
         {0, 0}, {9, 0}, {27, 0}, {45, 0},        // 第一行
-        {0, 9}, {9, 9}, {27, 9}, {45, 9},    // 第二行
+        {0, 9}, {9, 9}, {27, 9}, {45, 13},        // 第二行
         {0, 27}, {9, 27}, {27, 27},              // 第三行
-        {0, 45}, {9, 45}, {27, 45}, {45, 45},    // 第四行
-        {0, 63}, {9, 63}                         // 第五行
+        {0, 45}, {9, 45}, {27, 45},              // 第四行
+        {13, 63}, {27, 63}, {45, 54}               // 第五行
     },
     {
         // LED Index to Flag
@@ -33,8 +33,8 @@ led_config_t g_led_config =
         4, 4, 4, 4,
         4, 4, 4, 4,
         4, 4, 4,
-        4, 4, 4, 4,
-        4, 4
+        4, 4, 4, 
+        4, 4, 4
     }
 };
 
@@ -118,7 +118,7 @@ esp_err_t kob_rgb_matrix_init(void)
     return ESP_OK;
 }
 
-static void appLedTask(void *arg)
+static void app_led_task(void *arg)
 {
     /*!< Init LED and clear WS2812's status */
     led_strip_handle_t led_strip = NULL;
@@ -135,7 +135,7 @@ static void appLedTask(void *arg)
     ESP_LOGI(TAG, "Current RGB Matrix mode: %d", index);
     if (index == RGB_MATRIX_NONE)
         index = 1;
-    rgb_matrix_mode(4); // 设置呼吸灯模式 (索引5)
+    rgb_matrix_mode(2); // 设置呼吸灯模式 (索引5)
     // nvs_flush_rgb_matrix(true); // 保存模式到NVS
     ESP_LOGI(TAG, "RGB_MATRIX_EFFECT_MAX: %d", RGB_MATRIX_EFFECT_MAX);
 
@@ -151,7 +151,7 @@ static void appLedTask(void *arg)
     vTaskDelete(NULL);
 }
 
-void appLedStart(void)
+void led_task(void)
 {
-    xTaskCreate(appLedTask, "appLedTask", 4 * 1024, NULL, 3, NULL);
+    xTaskCreate(app_led_task, "app_led_task", 4 * 1024, NULL, 3, NULL);
 }

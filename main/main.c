@@ -1,9 +1,11 @@
-#include "spi_scanner.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "keyboard_led.h"
 #include "nvs_flash.h"
-
+#include "joystick.h"
+#include "spi_scanner.h"
+#include "nvs_keymap.h"
+#include "keymap_test.h"
 
 
 void app_main(void)
@@ -17,6 +19,10 @@ void app_main(void)
     ESP_ERROR_CHECK(ret);
     
     spi_hid_init();
-    appLedStart();
-    xTaskCreate(test_spi_task, "test_spi_task", 4096, NULL, 5, NULL);
+    led_task();
+    //joystick_task();
+    spi_scanner_keyboard_task();
+
+    // 启动按键映射测试（实际应用中可以根据需要选择是否启用）
+    start_keymap_test();
 }

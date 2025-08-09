@@ -1,27 +1,10 @@
 #include "spi_scanner.h"
 
 
-//全局变量定义
 spi_device_handle_t spi_device = NULL; // SPI句柄
 uint8_t received_data[NUM_BYTES];
 uint8_t debounce_data[NUM_BYTES]; 
-uint8_t remap_data[NUM_KEYS];
-
-
-
-
-static uint16_t keymaps[][NUM_KEYS] = {
-    [0] ={  KC_ESC , KC_KP_SLASH, KC_KP_ASTERISK, KC_KP_MINUS, 
-            KC_KP_7, KC_KP_8, KC_KP_9, KC_KP_PLUS, 
-            KC_KP_4, KC_KP_5, KC_KP_6, 
-            KC_KP_1, KC_KP_2, KC_KP_3, 
-            KC_KP_0, KC_KP_DOT, KC_KP_ENTER},
-    [1] ={  KC_ESC , KC_KP_SLASH, KC_KP_ASTERISK, KC_BACKSPACE, 
-            KC_Q, KC_W, KC_E, KC_KP_PLUS, 
-            KC_A, KC_S, KC_D, 
-            KC_KP_1, KC_KP_2, KC_KP_3, 
-            KC_KP_0, KC_KP_DOT, KC_KP_ENTER}
-};
+uint16_t remap_data[NUM_KEYS];
 
 
 void spi_hid_init(void)
@@ -162,18 +145,24 @@ hid_report_t build_hid_report(uint8_t _layer)
     return kbd_hid_report;
 }
 
-void test_spi_task(void *pvParameter)
+static void spi_scanner_task(void *pvParameter)
  {
 
     tinyusb_hid_init();
+    nvs_keymap_init(); // 初始化NVS并加载按键映射
 
     while(1)
     {
         read_74hc165_data();
         apply_debounce_filter(150); 
-        build_hid_report(1); // 0号层
+        build_hid_report(1); // 使用层1的映射
         vTaskDelay(20 / portTICK_PERIOD_MS);                
     }
     vTaskDelete(NULL);
+}
+
+void spi_scanner_keyboard_task(void)
+{
+    xTaskCreate(spi_scanner_task, "spi_scanner_task", 4096, NULL, 5, NULL);
 }
 

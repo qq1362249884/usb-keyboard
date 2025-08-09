@@ -25,6 +25,6 @@ esp_err_t kob_ws2812_enable(bool enable);
 esp_err_t kob_ws2812_clear(void);
 bool kob_ws2812_is_enable(void);
 esp_err_t kob_rgb_matrix_init(void);
-void appLedStart(void);
+void led_task(void);
 
 #endif
