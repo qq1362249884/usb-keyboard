@@ -1,6 +1,8 @@
 #include "keyboard_led.h"
 
 #include "rgb_matrix_nvs.h"
+#include "nvs_manager/nvs_manager.h"
+#include <inttypes.h>
 
 //全局变量定义
 static const char *TAG = "app_led";
@@ -85,6 +87,19 @@ esp_err_t kob_ws2812b_init(led_strip_handle_t *led_strip)
 
 esp_err_t kob_ws2812_enable(bool enable)
 {
+#if KOB_WS2812_USE_SOFTWARE_POWER_OFF
+    // 使用软件控制灯珠亮度为0代替关闭电源
+    if (!enable) {
+        // 清除所有LED灯珠 - 连续调用两次以增加可靠性
+        kob_ws2812_clear();
+        // 短暂延时确保数据传输完成
+        vTaskDelay(10 / portTICK_PERIOD_MS);
+        // 再次清除所有LED灯珠
+        kob_ws2812_clear();
+    }
+    // 不实际控制电源引脚，保持电源开启但通过软件控制灯珠关闭
+#else
+    // 原有逻辑：直接控制电源引脚
     if (!enable) {
         gpio_hold_dis(WS2812B_POWER_PIN);
     }
@@ -93,6 +108,7 @@ esp_err_t kob_ws2812_enable(bool enable)
     if (enable) {
         gpio_hold_en(WS2812B_POWER_PIN);
     }
+#endif
     s_led_enable = enable;
     return ESP_OK;
 }
@@ -111,34 +127,65 @@ bool kob_ws2812_is_enable(void)
 esp_err_t kob_rgb_matrix_init(void)
 {
     if (!s_led_strip) {
-        kob_ws2812b_init(NULL);
+        if (kob_ws2812b_init(NULL) != ESP_OK) {
+            ESP_LOGE(TAG, "Failed to initialize WS2812B");
+            return ESP_FAIL;
+        }
     }
-    rgb_matrix_driver_init(s_led_strip, WS2812B_NUM);
-    rgb_matrix_init();
-    return ESP_OK;
+    
+    if (s_led_strip) {
+        rgb_matrix_driver_init(s_led_strip, WS2812B_NUM);
+        rgb_matrix_init();
+        led_strip_clear(s_led_strip);
+        return ESP_OK;
+    } else {
+        ESP_LOGE(TAG, "Failed to get LED strip handle");
+        return ESP_FAIL;
+    }
 }
 
 static void app_led_task(void *arg)
 {
     /*!< Init LED and clear WS2812's status */
-    led_strip_handle_t led_strip = NULL;
-    kob_ws2812b_init(&led_strip);
-    if (led_strip)
-    {
-        led_strip_clear(led_strip);
+    esp_err_t err = kob_rgb_matrix_init();
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to initialize RGB matrix: %s", esp_err_to_name(err));
     }
-    kob_rgb_matrix_init();
 
-    kob_ws2812_enable(true);
+    // 不要默认开启LED，等待init_app.c中的配置应用 - 解决重启闪烁问题
+    // kob_ws2812_enable(true);
 
-    uint16_t index = rgb_matrix_get_mode();
-    ESP_LOGI(TAG, "Current RGB Matrix mode: %d", index);
-    if (index == RGB_MATRIX_NONE)
-        index = 1;
-    rgb_matrix_mode(2); // 设置呼吸灯模式 (索引5)
-    // nvs_flush_rgb_matrix(true); // 保存模式到NVS
-    ESP_LOGI(TAG, "RGB_MATRIX_EFFECT_MAX: %d", RGB_MATRIX_EFFECT_MAX);
-
+    uint16_t index = 1; // 默认值
+    uint32_t stored_mode = 0;
+    
+    // 创建并初始化NVS管理器
+    NvsBaseManager_t* nvs_manager = nvs_base_create("keyboard_led");
+    if (nvs_manager) {
+        if (nvs_base_init(nvs_manager) == ESP_OK && nvs_base_open(nvs_manager, true) == ESP_OK) {
+            // 检查键是否存在且读取成功
+            if (nvs_base_exists(nvs_manager, "rgb_matrix_mode")) {
+                if (nvs_base_load_u32(nvs_manager, "rgb_matrix_mode", &stored_mode) == ESP_OK) {
+                    index = (uint16_t)stored_mode;
+                    ESP_LOGI(TAG, "Loaded RGB matrix mode from NVS: %d", index);
+                }
+            } else {
+                ESP_LOGI(TAG, "RGB matrix mode not found in NVS, using default: %d", index);
+            }
+            
+            nvs_base_close(nvs_manager);
+        }
+        nvs_base_destroy(nvs_manager);
+    }
+    
+    // 确保索引有效
+    uint16_t max_mode = RGB_MATRIX_EFFECT_MAX - 1; // 假设MAX是包含上限的，所以减1
+    if (index < 1 || index > max_mode) {
+        index = 1; // 超出范围时使用默认值
+        ESP_LOGW(TAG, "Invalid mode index %" PRIu32 ", using default: %d", stored_mode, index);
+    }
+    
+    rgb_matrix_mode(index);
+    
     while (1)
     {
 

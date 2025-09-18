@@ -1,28 +1,26 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "keyboard_led.h"
-#include "nvs_flash.h"
-#include "joystick.h"
-#include "spi_scanner.h"
-#include "nvs_keymap.h"
-#include "keymap_test.h"
+#include "init_app.h"
+#include "esp_log.h"
 
+static const char *TAG = "MAIN";
+
+extern void app_main(void);
 
 void app_main(void)
 {
-    // Initialize NVS
-    esp_err_t ret = nvs_flash_init();
-    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-        ESP_ERROR_CHECK(nvs_flash_erase());
-        ret = nvs_flash_init();
+    // 使用初始化管理器协调所有硬件模块的初始化
+    esp_err_t ret = app_init();
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Application initialization failed: %s", esp_err_to_name(ret));
+        // 即使初始化失败，也尝试继续运行，以便进行调试
     }
-    ESP_ERROR_CHECK(ret);
     
-    spi_hid_init();
-    led_task();
-    //joystick_task();
-    spi_scanner_keyboard_task();
-
-    // 启动按键映射测试（实际应用中可以根据需要选择是否启用）
-    start_keymap_test();
+    ESP_LOGI(TAG, "Application started successfully");
+    
+    // 应用程序主循环可以在这里添加（如果需要）
+    // 但在这个项目中，各个功能已经在各自的任务中实现
+    while (1) {
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+    }
 }

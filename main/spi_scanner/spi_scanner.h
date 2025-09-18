@@ -9,15 +9,14 @@
 #include "driver/gpio.h"
 #include "esp_log.h"
 #include "esp_rom_sys.h" // for esp_rom_delay_us
-#include "esp_timer.h" // for esp_timer_get_time
-#include "unistd.h"
+
 
 #include "spi_config.h"
 #include "keycodes.h"
 
 #include "usb_descriptors.h"
 #include "tinyusb_hid.h"
-#include "nvs_keymap.h"
+#include "keymap_manager.h"
 
 
 //结构体定义
@@ -30,7 +29,6 @@ typedef struct
 
 
 //函数定义位置
-void spi_hid_init(void);
 void spi_scanner_keyboard_task(void);
 
 

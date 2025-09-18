@@ -1,4 +1,9 @@
 #include "spi_scanner.h"
+#include "tinyusb_hid.h" // 添加tinyusb_hid头文件，用于访问tud_suspended()和tud_remote_wakeup()函数
+#include "ssd1306/oled_menu/oled_menu_display.h"
+
+// 外部声明当前映射层变量
+extern uint8_t current_keymap_layer;
 
 
 spi_device_handle_t spi_device = NULL; // SPI句柄
@@ -7,7 +12,7 @@ uint8_t debounce_data[NUM_BYTES];
 uint16_t remap_data[NUM_KEYS];
 
 
-void spi_hid_init(void)
+static void spi_hid_init(void)
 {
     // 初始化 SH/LD 引脚
     gpio_set_direction(PIN_NUM_PL, GPIO_MODE_OUTPUT);
@@ -41,24 +46,24 @@ void spi_hid_init(void)
 
 }
 
-void read_74hc165_data() {
+static void read_74hc165_data() {
     spi_transaction_t transaction = {
         .length = NUM_BYTES * 8,           // 总共读取多少 bit
         .rx_buffer = received_data,
     };
 
     gpio_set_level(PIN_NUM_PL, 0); // 拉低，开始加载
-    usleep(10);                    // 短暂延时确保加载完成
+    esp_rom_delay_us(10);                    // 短暂延时确保加载完成
     gpio_set_level(PIN_NUM_PL, 1); // 拉高，进入移位模式 
     spi_device_transmit(spi_device, &transaction); // 发起SPI传输
 }
 
-void apply_debounce_filter(uint16_t filter_timeus)
+static void apply_debounce_filter(uint16_t filter_timeus)
 {
     uint8_t a;
     memcpy(debounce_data, received_data, NUM_BYTES);
 
-    usleep(filter_timeus); // 等待滤波时间
+    esp_rom_delay_us(filter_timeus); // 等待滤波时间
     read_74hc165_data();
     for(uint16_t i = 0; i < NUM_BYTES; i++)
     {
@@ -67,7 +72,7 @@ void apply_debounce_filter(uint16_t filter_timeus)
     }
 }
 
-hid_report_t build_hid_report(uint8_t _layer)
+static hid_report_t build_hid_report(uint8_t _layer)
 {
     //局部变量和结构体初始化
     uint8_t modify = 0;
@@ -145,17 +150,53 @@ hid_report_t build_hid_report(uint8_t _layer)
     return kbd_hid_report;
 }
 
+static void wakeup_host_if_needed(void)
+{
+    // 检查USB是否处于挂起状态
+    if (tud_suspended()) {
+        // 唤醒主机
+        ESP_LOGI("usb_spi", "Waking up host from suspend mode");
+        tud_remote_wakeup();
+    }
+}
+
 static void spi_scanner_task(void *pvParameter)
  {
-
+    spi_hid_init();
     tinyusb_hid_init();
     nvs_keymap_init(); // 初始化NVS并加载按键映射
+
+    // 初始化上一次按键状态
+    uint8_t prev_received_data[NUM_BYTES] = {0};
+    bool keys_pressed = false;
 
     while(1)
     {
         read_74hc165_data();
         apply_debounce_filter(150); 
-        build_hid_report(1); // 使用层1的映射
+
+        // 检测按键状态变化
+        keys_pressed = false;
+        for(int i = 0; i < NUM_BYTES; i++)
+        {
+            if(received_data[i] != 0) // 有按键被按下
+            {
+                keys_pressed = true;
+                break;
+            }
+        }
+
+        // 如果有新按键按下，尝试唤醒主机
+        if(keys_pressed)
+        {
+            wakeup_host_if_needed();
+        }
+
+        build_hid_report(current_keymap_layer); // 使用当前选择的映射层
+        
+        // 保存当前按键状态用于下一次比较
+        memcpy(prev_received_data, received_data, NUM_BYTES);
+        
         vTaskDelay(20 / portTICK_PERIOD_MS);                
     }
     vTaskDelete(NULL);

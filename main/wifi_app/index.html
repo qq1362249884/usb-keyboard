@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESP32设备配置</title>
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --background-color: #f8fafc;
+            --container-bg: #ffffff;
+            --text-color: #333;
+            --border-color: #e5e7eb;
+            --secondary-bg: #f1f5f9;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --readonly-bg: #f3f4f6;
+            --hover-bg: #f9fafb;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            background-color: var(--background-color);
+            line-height: 1.5;
+            color: var(--text-color);
+        }
+        
+        .container {
+            text-align: center;
+            padding: 2rem;
+            background-color: var(--container-bg);
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1);
+            max-width: 600px;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        
+        h1 {
+            color: var(--primary-color);
+            margin-bottom: 1.5rem;
+            font-size: 1.75rem;
+            font-weight: 600;
+            user-select: none;
+        }
+        
+        h2 {
+            color: var(--text-color);
+            font-size: 1.25rem;
+            margin: 1rem 0;
+            font-weight: 500;
+        }
+        
+        p {
+            color: #64748b;
+            font-size: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        /* 标签页样式 */
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid var(--border-color);
+            margin-bottom: 1.5rem;
+        }
+        
+        .tab {
+            padding: 0.75rem 1.5rem;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            color: #64748b;
+        }
+        
+        .tab.active {
+            border-bottom-color: var(--primary-color);
+            color: var(--primary-color);
+            background-color: var(--hover-bg);
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .keymap-content {
+            display: none;
+        }
+        
+        .keymap-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* 统一表单元素样式 */
+        .form-element {
+            width: 100%;
+            padding: 0.75rem;
+            margin: 0.5rem 0;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            font-family: inherit;
+            background-color: white;
+            color: #333;
+            line-height: 1.5;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .form-element:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+        }
+        
+        /* 自定义下拉菜单样式 */
+        .custom-select {
+            width: 100%;
+            margin: 0.5rem 0;
+            position: relative;
+        }
+        
+        .select-selected {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            background-color: white;
+            cursor: pointer;
+            font-size: 1rem;
+            font-family: inherit;
+            color: #333;
+            line-height: 1.5;
+            text-align: left;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+            display: inline-block;
+        }
+        
+        .select-selected:hover {
+            border-color: var(--primary-color);
+        }
+        
+        .select-selected:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+        }
+        
+        .select-items {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            width: 100%;
+            margin-top: 4px;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            max-height: 200px;
+            overflow-y: auto;
+            display: none;
+            z-index: 1000;
+            box-sizing: border-box;
+        }
+        
+        .select-item {
+            padding: 0.75rem;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            text-align: left;
+        }
+        
+        .select-item:hover {
+            background-color: #f0f0f0;
+        }
+        
+        /* 按钮样式 */
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 0.5rem 0;
+            display: inline-block;
+            text-decoration: none;
+            text-align: center;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        .btn-primary:hover:not(:disabled) {
+            background-color: #1d4ed8;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        
+        .btn-secondary {
+            background-color: #64748b;
+            color: white;
+        }
+        
+        .btn-secondary:hover:not(:disabled) {
+            background-color: #475569;
+        }
+        
+        .btn-success {
+            background-color: var(--success-color);
+            color: white;
+        }
+        
+        .btn-success:hover:not(:disabled) {
+            background-color: #059669;
+        }
+        
+        .btn-warning {
+            background-color: var(--warning-color);
+            color: white;
+        }
+        
+        .btn-warning:hover:not(:disabled) {
+            background-color: #d97706;
+        }
+        
+        .btn-danger {
+            background-color: var(--danger-color);
+            color: white;
+        }
+        
+        .btn-danger:hover:not(:disabled) {
+            background-color: #dc2626;
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: center;
+            margin: 1rem 0;
+            flex-wrap: wrap;
+        }
+        
+        .btn-group .btn {
+            flex: 1;
+            min-width: 120px;
+        }
+        
+        /* WiFi部分样式 */
+        .wifi-section {
+            margin: 1.5rem 0;
+            padding: 1.5rem;
+            background-color: var(--secondary-bg);
+            border-radius: 0.75rem;
+            border: 1px solid var(--border-color);
+            user-select: none;
+        }
+        
+        .password-input {
+            margin: 0.5rem 0;
+        }
+        
+        /* 键盘映射部分样式 */
+        .keymap-section {
+            margin: 1.5rem 0;
+            padding: 1.5rem;
+            background-color: var(--secondary-bg);
+            border-radius: 0.75rem;
+            border: 1px solid var(--border-color);
+        }
+        
+        .keymap-tabs {
+            display: flex;
+            border-bottom: 2px solid var(--border-color);
+            margin-bottom: 1rem;
+        }
+        
+        .keymap-tab {
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+        
+        .keymap-tab.active {
+            border-bottom-color: var(--primary-color);
+            color: var(--primary-color);
+            background-color: var(--hover-bg);
+        }
+        
+        .keymap-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 10px;
+            margin: 1rem 0;
+        }
+        
+        .key-item {
+            background-color: white;
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+        
+        .key-item:hover {
+            border-color: var(--primary-color);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+        
+        .key-number {
+            font-size: 0.8rem;
+            color: #64748b;
+            margin-bottom: 5px;
+        }
+        
+        .key-value {
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--text-color);
+        }
+        
+        .key-select {
+            width: 100%;
+            padding: 5px;
+            margin-top: 5px;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.375rem;
+            font-size: 0.9rem;
+        }
+        
+        .readonly {
+            background-color: var(--readonly-bg);
+            cursor: not-allowed;
+        }
+        
+        .readonly .key-select {
+            background-color: var(--readonly-bg);
+            cursor: not-allowed;
+        }
+        
+        .keymap-status {
+            padding: 10px;
+            border-radius: 0.5rem;
+            margin: 1rem 0;
+            text-align: left;
+        }
+        
+        .status-success {
+            background-color: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: var(--success-color);
+        }
+        
+        .status-error {
+            background-color: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: var(--danger-color);
+        }
+        
+        .status-warning {
+            background-color: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            color: var(--warning-color);
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 480px) {
+            body {
+                padding: 10px;
+            }
+            
+            .container {
+                padding: 1.5rem;
+            }
+            
+            .btn-group .btn {
+                min-width: auto;
+            }
+            
+            .keymap-grid {
+                grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>ESP32设备配置</h1>
+        <p>当前的IP：<span id="currentIP"></span></p>
+        
+        <!-- 主标签页 -->
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('wifi')">WiFi配置</div>
+            <div class="tab" onclick="switchTab('keymap')">键盘映射</div>
+        </div>
+        
+        <!-- WiFi配置内容 -->
+        <div id="wifi-content" class="tab-content active">
+            <div class="wifi-section">
+                <h2>扫描到的WiFi列表</h2>
+                <!-- 自定义WiFi下拉菜单 -->
+                <div class="custom-select">
+                    <div id="wifiDropdown" class="select-selected">
+                        请选择WiFi
+                    </div>
+                    <div id="wifiOptions" class="select-items">
+                        <div class="select-item" data-value="">
+                            请选择WiFi
+                        </div>
+                    </div>
+                </div>
+                <input type="hidden" id="selectedWifi" value="">
+                <div class="password-input">
+                    <input type="password" id="wifiPassword" placeholder="输入WiFi密码" class="form-element">
+                </div>
+                <button id="connectBtn" class="btn btn-primary">连接WiFi</button>
+            </div>
+        </div>
+        
+        <!-- 键盘映射内容 -->
+        <div id="keymap-content" class="tab-content">
+            <div class="keymap-section">
+                <!-- 键盘映射标签页 -->
+                <div class="keymap-tabs">
+                    <div class="keymap-tab active" onclick="switchKeymapTab('default')">默认映射（只读）</div>
+                    <div class="keymap-tab" onclick="switchKeymapTab('custom')">自定义映射（可编辑）</div>
+                </div>
+                
+                <!-- 状态消息 -->
+                <div id="keymapStatus" class="keymap-status" style="display: none;"></div>
+                
+                <!-- 默认键盘映射 -->
+                <div id="default-keymap" class="keymap-content active">
+                    <div class="keymap-grid" id="defaultKeymapGrid"></div>
+                    <p>以上是默认的按键映射配置，无法修改。您可以在自定义映射标签中创建自己的按键配置。</p>
+                </div>
+                
+                <!-- 自定义键盘映射 -->
+                <div id="custom-keymap" class="keymap-content">
+                    <div class="keymap-grid" id="customKeymapGrid"></div>
+                    <div class="btn-group">
+                        <button id="loadKeymapBtn" class="btn btn-secondary" onclick="loadCustomKeymap()">加载配置</button>
+                        <button id="saveKeymapBtn" class="btn btn-primary" onclick="saveCustomKeymap()">保存配置</button>
+                        <button id="resetKeymapBtn" class="btn btn-warning" onclick="resetCustomKeymap()">重置为空</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <p>当前时间：<span id="currentTime"></span></p>
+    </div>
+    
+    <script>
+        // 主标签页切换
+        function switchTab(tabName) {
+            // 隐藏所有内容
+            document.getElementById('wifi-content').classList.remove('active');
+            document.getElementById('keymap-content').classList.remove('active');
+            
+            // 移除所有标签的active类
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // 显示选中的内容
+            document.getElementById(tabName + '-content').classList.add('active');
+            
+            // 添加active类到选中的标签
+            document.querySelector('.tab[onclick="switchTab(\'' + tabName + '\')"]').classList.add('active');
+            
+            // 如果切换到键盘映射标签，加载默认映射
+            if (tabName === 'keymap') {
+                loadDefaultKeymap();
+            }
+        }
+        
+        // 键盘映射标签页切换
+        function switchKeymapTab(tabName) {
+            // 隐藏所有映射内容
+            document.getElementById('default-keymap').classList.remove('active');
+            document.getElementById('custom-keymap').classList.remove('active');
+            
+            // 移除所有标签的active类
+            document.querySelectorAll('.keymap-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // 显示选中的内容
+            document.getElementById(tabName + '-keymap').classList.add('active');
+            
+            // 添加active类到选中的标签
+            document.querySelector('.keymap-tab[onclick="switchKeymapTab(\'' + tabName + '\')"]').classList.add('active');
+        }
+        
+        // 显示状态消息
+        function showStatus(message, type = 'success') {
+            const statusElement = document.getElementById('keymapStatus');
+            statusElement.textContent = message;
+            
+            // 移除所有状态类
+            statusElement.classList.remove('status-success', 'status-error', 'status-warning');
+            
+            // 添加相应的状态类
+            statusElement.classList.add('status-' + type);
+            
+            // 显示状态元素
+            statusElement.style.display = 'block';
+            
+            // 3秒后隐藏
+            setTimeout(() => {
+                statusElement.style.display = 'none';
+            }, 3000);
+        }
+        
+        // 键码映射表（从keycodes.h提取的常用键码）
+        const keyCodeMap = {
+            0x0000: 'KC_NO',
+            0x0001: 'KC_TRANSPARENT',
+            0x0004: 'KC_A',
+            0x0005: 'KC_B',
+            0x0006: 'KC_C',
+            0x0007: 'KC_D',
+            0x0008: 'KC_E',
+            0x0009: 'KC_F',
+            0x000A: 'KC_G',
+            0x000B: 'KC_H',
+            0x000C: 'KC_I',
+            0x000D: 'KC_J',
+            0x000E: 'KC_K',
+            0x000F: 'KC_L',
+            0x0010: 'KC_M',
+            0x0011: 'KC_N',
+            0x0012: 'KC_O',
+            0x0013: 'KC_P',
+            0x0014: 'KC_Q',
+            0x0015: 'KC_R',
+            0x0016: 'KC_S',
+            0x0017: 'KC_T',
+            0x0018: 'KC_U',
+            0x0019: 'KC_V',
+            0x001A: 'KC_W',
+            0x001B: 'KC_X',
+            0x001C: 'KC_Y',
+            0x001D: 'KC_Z',
+            0x001E: 'KC_1',
+            0x001F: 'KC_2',
+            0x0020: 'KC_3',
+            0x0021: 'KC_4',
+            0x0022: 'KC_5',
+            0x0023: 'KC_6',
+            0x0024: 'KC_7',
+            0x0025: 'KC_8',
+            0x0026: 'KC_9',
+            0x0027: 'KC_0',
+            0x0028: 'KC_ENTER',
+            0x0029: 'KC_ESCAPE',
+            0x002A: 'KC_BACKSPACE',
+            0x002B: 'KC_TAB',
+            0x002C: 'KC_SPACE',
+            0x002D: 'KC_MINUS',
+            0x002E: 'KC_EQUAL',
+            0x002F: 'KC_LEFT_BRACKET',
+            0x0030: 'KC_RIGHT_BRACKET',
+            0x0031: 'KC_BACKSLASH',
+            0x0032: 'KC_NONUS_HASH',
+            0x0033: 'KC_SEMICOLON',
+            0x0034: 'KC_QUOTE',
+            0x0035: 'KC_GRAVE',
+            0x0036: 'KC_COMMA',
+            0x0037: 'KC_DOT',
+            0x0038: 'KC_SLASH',
+            0x0039: 'KC_CAPS_LOCK',
+            0x003A: 'KC_F1',
+            0x003B: 'KC_F2',
+            0x003C: 'KC_F3',
+            0x003D: 'KC_F4',
+            0x003E: 'KC_F5',
+            0x003F: 'KC_F6',
+            0x0040: 'KC_F7',
+            0x0041: 'KC_F8',
+            0x0042: 'KC_F9',
+            0x0043: 'KC_F10',
+            0x0044: 'KC_F11',
+            0x0045: 'KC_F12',
+            0x0049: 'KC_INSERT',
+            0x004A: 'KC_HOME',
+            0x004B: 'KC_PAGE_UP',
+            0x004C: 'KC_DELETE',
+            0x004D: 'KC_END',
+            0x004E: 'KC_PAGE_DOWN',
+            0x004F: 'KC_RIGHT',
+            0x0050: 'KC_LEFT',
+            0x0051: 'KC_DOWN',
+            0x0052: 'KC_UP',
+            0x0053: 'KC_NUM_LOCK',
+            0x0054: 'KC_KP_SLASH',
+            0x0055: 'KC_KP_ASTERISK',
+            0x0056: 'KC_KP_MINUS',
+            0x0057: 'KC_KP_PLUS',
+            0x0058: 'KC_KP_ENTER',
+            0x0059: 'KC_KP_1',
+            0x005A: 'KC_KP_2',
+            0x005B: 'KC_KP_3',
+            0x005C: 'KC_KP_4',
+            0x005D: 'KC_KP_5',
+            0x005E: 'KC_KP_6',
+            0x005F: 'KC_KP_7',
+            0x0060: 'KC_KP_8',
+            0x0061: 'KC_KP_9',
+            0x0062: 'KC_KP_0',
+            0x0063: 'KC_KP_DOT'
+        };
+        
+        // 获取键码的可读名称
+        function getKeyName(code) {
+            return keyCodeMap[code] || `未知(0x${code.toString(16).toUpperCase().padStart(4, '0')})`;
+        }
+        
+        // 获取所有键码选项的HTML
+        function getKeyOptions(selectedCode = 0) {
+            let options = '';
+            // 添加空白选项
+            options += `<option value="0" ${selectedCode === 0 ? 'selected' : ''}>空（无功能）</option>`;
+            
+            // 添加所有键码选项，按值排序
+            Object.keys(keyCodeMap)
+                .map(Number)
+                .sort((a, b) => a - b)
+                .forEach(code => {
+                    options += `<option value="${code}" ${selectedCode === code ? 'selected' : ''}>${getKeyName(code)}</option>`;
+                });
+            
+            return options;
+        }
+        
+        // 默认按键映射（从keymap_manager.c提取）
+        const defaultKeymaps = {
+            0: [0x0029, 0x0054, 0x0055, 0x0056, 0x0059, 0x0060, 0x0061, 0x0057, 0x005C, 0x005D, 0x005E, 0x0059, 0x005A, 0x005B, 0x0062, 0x0063, 0x0058],
+            1: [0x0029, 0x0054, 0x0055, 0x002A, 0x0014, 0x001A, 0x0008, 0x0057, 0x0004, 0x0016, 0x0007, 0x0059, 0x005A, 0x005B, 0x0062, 0x0063, 0x0058]
+        };
+        
+        // 加载默认键盘映射
+        function loadDefaultKeymap() {
+            const grid = document.getElementById('defaultKeymapGrid');
+            grid.innerHTML = '';
+            
+            // 显示默认映射（层0）
+            defaultKeymaps[0].forEach((code, index) => {
+                const keyItem = document.createElement('div');
+                keyItem.className = 'key-item readonly';
+                keyItem.innerHTML = `
+                    <div class="key-number">按键 ${index + 1}</div>
+                    <div class="key-value">${getKeyName(code)}</div>
+                `;
+                grid.appendChild(keyItem);
+            });
+            
+            // 如果是第一次加载自定义映射，初始化为空
+            if (!document.getElementById('customKeymapGrid').hasChildNodes()) {
+                initCustomKeymap();
+            }
+        }
+        
+        // 初始化自定义键盘映射为空
+        function initCustomKeymap() {
+            const grid = document.getElementById('customKeymapGrid');
+            grid.innerHTML = '';
+            
+            // 创建17个空的按键选择器（根据NUM_KEYS的值）
+            for (let i = 0; i < 17; i++) {
+                const keyItem = document.createElement('div');
+                keyItem.className = 'key-item';
+                keyItem.dataset.keyIndex = i;
+                keyItem.innerHTML = `
+                    <div class="key-number">按键 ${i + 1}</div>
+                    <select class="key-select" data-key-index="${i}">
+                        ${getKeyOptions(0)}
+                    </select>
+                `;
+                grid.appendChild(keyItem);
+            }
+        }
+        
+        // 加载自定义键盘映射
+        async function loadCustomKeymap() {
+            try {
+                // 实际设备上直接调用接口
+                const response = await fetch('/load-keymap');
+                const data = await response.json();
+                
+                if (data.status === 'success' && data.keymap) {
+                    const grid = document.getElementById('customKeymapGrid');
+                    const selects = grid.querySelectorAll('.key-select');
+                    
+                    data.keymap.forEach((code, index) => {
+                        if (selects[index]) {
+                            selects[index].value = code;
+                        }
+                    });
+                    
+                    showStatus('按键映射加载成功', 'success');
+                } else {
+                    showStatus('加载失败：' + (data.message || '未知错误'), 'error');
+                }
+            } catch (error) {
+                console.error('加载按键映射失败:', error);
+                showStatus('加载请求失败，请重试', 'error');
+            }
+        }
+        
+        // 保存自定义键盘映射
+        async function saveCustomKeymap() {
+            try {
+                const grid = document.getElementById('customKeymapGrid');
+                const selects = grid.querySelectorAll('.key-select');
+                const keymap = Array.from(selects).map(select => parseInt(select.value));
+                
+                // 实际设备上直接调用接口
+                const response = await fetch('/save-keymap', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ keymap: keymap })
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    showStatus('按键映射保存成功', 'success');
+                } else {
+                    showStatus('保存失败：' + (data.message || '未知错误'), 'error');
+                }
+            } catch (error) {
+                console.error('保存按键映射失败:', error);
+                showStatus('保存请求失败，请重试', 'error');
+            }
+        }
+        
+        // 重置自定义键盘映射为空
+        function resetCustomKeymap() {
+            if (confirm('确定要将自定义映射重置为空吗？')) {
+                const grid = document.getElementById('customKeymapGrid');
+                const selects = grid.querySelectorAll('.key-select');
+                
+                selects.forEach(select => {
+                    select.value = '0';
+                });
+                
+                showStatus('自定义映射已重置为空', 'warning');
+            }
+        }
+        
+        // WiFi相关函数（保持原有功能）
+        async function connectWifi() {
+            const ssid = document.getElementById('selectedWifi').value;
+            const password = document.getElementById('wifiPassword').value;
+            if (!ssid || !password) {
+                alert('请选择WiFi并输入密码');
+                return;
+            }
+            
+            try {
+                // 在本地测试环境中模拟连接成功
+                if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                    // 添加延迟模拟连接过程
+                    setTimeout(() => {
+                        alert('连接成功！（模拟）\n\n注意：实际设备连接成功后会从AP模式切换到STA模式，\nAP热点将关闭，您需要通过设备获取的新IP地址访问。\n\n如果需要重新配置WiFi，请重启设备。');
+                        // 连接成功后禁用输入防止重复提交
+                        document.getElementById('wifiDropdown').style.backgroundColor = '#f0f0f0';
+                        document.getElementById('wifiDropdown').style.cursor = 'not-allowed';
+                        document.getElementById('wifiDropdown').removeEventListener('click', toggleDropdown);
+                        document.getElementById('wifiPassword').disabled = true;
+                        document.getElementById('connectBtn').disabled = true;
+                        // 更新IP地址显示
+                        document.getElementById('currentIP').textContent = '192.168.1.101 (模拟)';
+                    }, 1500);
+                    return;
+                }
+                
+                // 注意：由于设备在连接成功后会立即切换网络模式，
+                // 从AP模式切换到STA模式，导致AP热点关闭，前端可能无法完整接收响应
+                
+                // 先显示连接尝试中的提示
+                alert('设备正在尝试连接到WiFi网络...\n\n注意：连接成功后设备将从AP模式切换到STA模式，\nAP热点将关闭，您需要通过设备获取的新IP地址访问。\n\n如果需要重新配置WiFi，请重启设备。');
+                
+                // 禁用输入防止重复提交
+                document.getElementById('wifiDropdown').style.backgroundColor = '#f0f0f0';
+                document.getElementById('wifiDropdown').style.cursor = 'not-allowed';
+                document.getElementById('wifiDropdown').removeEventListener('click', toggleDropdown);
+                document.getElementById('wifiPassword').disabled = true;
+                document.getElementById('connectBtn').disabled = true;
+                
+                // 发送连接请求（不等待完整响应，因为设备可能会立即切换网络模式）
+                try {
+                    fetch('/connect-wifi', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ ssid: ssid, password: password })
+                    });
+                    
+                    // 添加延迟后尝试关闭或重定向网页
+                    setTimeout(() => {
+                        try {
+                            // 尝试关闭窗口（如果是通过脚本打开的窗口）
+                            window.close();
+                            
+                            // 如果窗口没有关闭，重定向到空白页面
+                            setTimeout(() => {
+                                window.location.href = 'about:blank';
+                                // 显示最终提示
+                                alert('设备已切换到STA模式，配置已完成。\n\n您可以关闭此页面，并通过设备获取的新IP地址访问设备。');
+                            }, 500);
+                        } catch (closeError) {
+                            // 忽略关闭错误，因为浏览器安全限制可能阻止关闭非脚本打开的窗口
+                            console.log('浏览器安全限制阻止关闭窗口');
+                            // 重定向到空白页面
+                            window.location.href = 'about:blank';
+                            // 显示提示
+                            alert('设备已切换到STA模式，配置已完成。\n\n您可以关闭此页面，并通过设备获取的新IP地址访问设备。');
+                        }
+                    }, 2000);
+                } catch (error) {
+                    // 忽略错误，因为设备可能已经切换网络模式
+                    console.log('设备可能已切换网络模式，忽略请求错误');
+                    
+                    // 即使发生错误，也尝试关闭或重定向网页
+                    setTimeout(() => {
+                        window.location.href = 'about:blank';
+                        alert('设备配置过程已开始。\n\n您可以关闭此页面，设备将尝试连接到指定的WiFi网络。');
+                    }, 1000);
+                }
+            } catch (error) {
+                console.error('连接请求失败:', error);
+                // 增强错误提示，告知用户可能的原因
+                alert('连接请求发送失败，请重试\n\n可能原因：\n1. 设备正在切换网络模式\n2. AP热点已关闭\n3. 网络连接中断\n\n如果需要重新配置WiFi，请重启设备。');
+            }
+        }
+        
+        // 获取并显示当前IP
+        async function fetchIP() {
+            try {
+                // 在本地测试环境中显示模拟IP
+                if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                    document.getElementById('currentIP').textContent = '192.168.1.100 (模拟)';
+                    return;
+                }
+                
+                const response = await fetch('/get-ip');
+                const data = await response.json();
+                if (data.status === 'success') {
+                    document.getElementById('currentIP').textContent = data.ip;
+                } else {
+                    document.getElementById('currentIP').textContent = '错误: ' + (data.message || '未知错误');
+                    console.error('获取IP失败:', data.message);
+                }
+            } catch (error) {
+                console.error('获取IP请求失败:', error);
+                document.getElementById('currentIP').textContent = '请求失败';
+            }
+        }
+        
+        // 实时显示时间
+        function updateTime() {
+            const timeElement = document.getElementById('currentTime');
+            const now = new Date();
+            timeElement.textContent = now.toLocaleString();
+        }
+        
+        // 获取WiFi列表
+        async function fetchWifiList() {
+            try {
+                // 在本地测试环境中显示模拟WiFi列表
+                if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                    const wifiOptions = document.getElementById('wifiOptions');
+                    // 完全清除现有选项，保留第一个默认选项
+                    while (wifiOptions.children.length > 1) {
+                        wifiOptions.removeChild(wifiOptions.lastChild);
+                    }
+                    
+                    // 添加模拟的WiFi网络
+                    const mockNetworks = ['WiFi-1', 'WiFi-2', 'WiFi-3', 'WiFi-4'];
+                    mockNetworks.forEach(ssid => {
+                        const option = document.createElement('div');
+                        option.className = 'select-item';
+                        option.setAttribute('data-value', ssid);
+                        option.textContent = ssid;
+                        option.addEventListener('click', function() {
+                            selectWifi(this);
+                        });
+                        wifiOptions.appendChild(option);
+                    });
+                    return;
+                }
+                
+                const response = await fetch('/scan-wifi');
+                const data = await response.json();
+                const wifiOptions = document.getElementById('wifiOptions');
+                
+                // 完全清除现有选项，保留第一个默认选项
+                while (wifiOptions.children.length > 1) {
+                    wifiOptions.removeChild(wifiOptions.lastChild);
+                }
+                
+                // 添加扫描结果
+                if (data.status === 'success' && data.data.length > 0) {
+                    data.data.forEach(ssid => {
+                        const option = document.createElement('div');
+                        option.className = 'select-item';
+                        option.setAttribute('data-value', ssid);
+                        option.textContent = ssid;
+                        option.addEventListener('click', function() {
+                            selectWifi(this);
+                        });
+                        wifiOptions.appendChild(option);
+                    });
+                } else {
+                    const option = document.createElement('div');
+                    option.className = 'select-item';
+                    option.setAttribute('data-value', '');
+                    option.textContent = '未发现WiFi网络';
+                    option.style.color = '#999';
+                    option.style.cursor = 'not-allowed';
+                    // 移除不可点击选项的悬停效果
+                    option.addEventListener('mouseenter', function() {
+                        this.style.backgroundColor = 'white';
+                    });
+                    wifiOptions.appendChild(option);
+                }
+            } catch (error) {
+                console.error('获取WiFi列表失败:', error);
+                const wifiOptions = document.getElementById('wifiOptions');
+                // 清除现有选项，保留第一个默认选项
+                while (wifiOptions.children.length > 1) {
+                    wifiOptions.removeChild(wifiOptions.lastChild);
+                }
+                const option = document.createElement('div');
+                option.className = 'select-item';
+                option.setAttribute('data-value', '');
+                option.textContent = '扫描失败，请重试';
+                option.style.color = '#999';
+                option.style.cursor = 'not-allowed';
+                // 移除不可点击选项的悬停效果
+                option.addEventListener('mouseenter', function() {
+                    this.style.backgroundColor = 'white';
+                });
+                wifiOptions.appendChild(option);
+            }
+        }
+        
+        // 切换下拉菜单显示/隐藏
+        function toggleDropdown() {
+            const options = document.getElementById('wifiOptions');
+            // 关闭其他可能打开的下拉菜单
+            document.querySelectorAll('.select-items').forEach(item => {
+                if (item !== options) {
+                    item.style.display = 'none';
+                }
+            });
+            // 切换当前下拉菜单
+            options.style.display = options.style.display === 'block' ? 'none' : 'block';
+        }
+        
+        // 选择WiFi
+        function selectWifi(element) {
+            const value = element.getAttribute('data-value');
+            const text = element.textContent;
+            document.getElementById('wifiDropdown').textContent = text;
+            document.getElementById('selectedWifi').value = value;
+            document.getElementById('wifiOptions').style.display = 'none';
+        }
+        
+        // 点击页面其他地方关闭下拉菜单
+        document.addEventListener('click', function(event) {
+            const dropdown = document.getElementById('wifiDropdown');
+            const options = document.getElementById('wifiOptions');
+            if (!dropdown.contains(event.target) && !options.contains(event.target)) {
+                options.style.display = 'none';
+            }
+        });
+        
+        // 页面加载时初始化
+        window.onload = function() {
+            // 初始加载IP
+            fetchIP();
+            // 初始加载WiFi列表
+            fetchWifiList();
+            // 初始加载时间
+            updateTime();
+            // 每秒更新时间
+            setInterval(updateTime, 1000);
+            // 绑定连接按钮点击事件
+            document.getElementById('connectBtn').addEventListener('click', connectWifi);
+            // 绑定下拉菜单点击事件
+            document.getElementById('wifiDropdown').addEventListener('click', toggleDropdown);
+            // 给第一个默认选项添加事件监听
+            document.querySelector('.select-item').addEventListener('click', function() {
+                selectWifi(this);
+            });
+        };
+    </script>
+</body>
+</html>

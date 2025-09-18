@@ -15,12 +15,14 @@
 #include "tinyusb_hid.h"
 #include "usb_descriptors.h"
 #include "device/usbd.h"
+#include "keyboard_led/keyboard_led.h"
 
 
 static const char *TAG = "tinyusb_hid.h";
 
 
 static tinyusb_hid_t *s_tinyusb_hid = NULL;
+static bool s_remote_wakeup_enabled = false; // 跟踪远程唤醒功能是否被主机允许
 
 
 //--------------------------------------------------------------------+
@@ -184,6 +186,9 @@ void tud_mount_cb(void)
     ESP_LOGI(TAG, "USB Mount");
 }
 
+// 全局变量，用于保存USB挂起前的WS2812状态
+static bool s_saved_ws2812_state = false;
+
 // Invoked when device is unmounted
 void tud_umount_cb(void)
 {
@@ -195,12 +200,20 @@ void tud_umount_cb(void)
 // Within 7ms, device must draw an average of current less than 2.5 mA from bus
 void tud_suspend_cb(bool remote_wakeup_en)
 {
-    (void) remote_wakeup_en;
-    ESP_LOGI(TAG, "USB Suspend");
+    s_remote_wakeup_enabled = remote_wakeup_en;
+    // 保存当前WS2812状态
+    s_saved_ws2812_state = kob_ws2812_is_enable();
+
+    
+    // 主机睡眠时关闭灯光效果以节省电量
+    kob_ws2812_enable(false);
 }
 
 // Invoked when usb bus is resumed
 void tud_resume_cb(void)
 {
     ESP_LOGI(TAG, "USB Resume");
+    
+    // 主机苏醒时恢复之前保存的WS2812状态
+    kob_ws2812_enable(s_saved_ws2812_state);
 }

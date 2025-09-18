@@ -10,7 +10,7 @@ dependencies:
       type: service
     version: 2.5.5
   espressif/tinyusb:
-    component_hash: 10703da2c3cd39a944711ee3d320c6dda54debabf13b4b933a7c90daf102372b
+    component_hash: aa65639878f27a44d349044afd9c3fc134a92bd560874fdac1d836019b5c07ca
     dependencies:
     - name: idf
       require: private
@@ -22,11 +22,11 @@ dependencies:
     - esp32s2
     - esp32s3
     - esp32p4
-    version: 0.18.0~2
+    version: 0.18.0~4
   idf:
     source:
       type: idf
-    version: 5.4.1
+    version: 5.4.2
   lijunru-hub/keyboard_rgb_matrix:
     component_hash: ecbe8ec9acf97272b90de19f0c0f229bcbaf4c1f7cca0518593d623f578e1bc4
     dependencies:
