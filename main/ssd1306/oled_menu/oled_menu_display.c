@@ -29,7 +29,7 @@ static esp_err_t menu_nvs_init(void) {
         g_menu_nvs_manager = NULL;
     }
     
-    // 创建菜单NVS管理器实例，默认层为0，默认WS2812状态为false
+    // 创建菜单NVS管理器实例，默认层为0，默认WS2812状态为false，默认WiFi状态为false
     g_menu_nvs_manager = menu_nvs_manager_create(NULL, 0, false);
     if (!g_menu_nvs_manager) {
         ESP_LOGE("MENU_NVS", "Failed to create menu NVS manager");
@@ -62,15 +62,22 @@ static void load_menu_config(void) {
     // 记录加载前的状态
     uint8_t prev_layer = current_keymap_layer;
     bool prev_ws2812_state = kob_ws2812_is_enable();
-    ESP_LOGI("MENU_NVS", "Before loading config: layer=%d, ws2812_state=%d", 
-             prev_layer, prev_ws2812_state);
+    bool prev_wifi_state = false;
+    wifi_mode_t current_mode;
+    if (esp_wifi_get_mode(&current_mode) == ESP_OK) {
+        prev_wifi_state = (current_mode != WIFI_MODE_NULL);
+    }
+    
+    ESP_LOGI("MENU_NVS", "Before loading config: layer=%d, ws2812_state=%d, wifi_state=%d", 
+             prev_layer, prev_ws2812_state, prev_wifi_state);
     
     // 准备加载的变量
     uint8_t layer = current_keymap_layer;
     bool ws2812_state = prev_ws2812_state;
+    bool wifi_state = prev_wifi_state;
     
     // 加载所有菜单配置
-    esp_err_t err = menu_nvs_manager_load_all(g_menu_nvs_manager, &layer, &ws2812_state);
+    esp_err_t err = menu_nvs_manager_load_all(g_menu_nvs_manager, &layer, &ws2812_state, &wifi_state);
     
     // 无论加载结果如何，都应用合理的值
     if (err == ESP_OK || err == ESP_ERR_NOT_FOUND) {
@@ -127,9 +134,38 @@ static void load_menu_config(void) {
         kob_ws2812_enable(ws2812_state);
     }
     
+    // 应用WiFi状态
+    ESP_LOGI("MENU_NVS", "Applying WiFi state from NVS: %d", wifi_state);
+    
+    // 检查当前WiFi状态
+    if (esp_wifi_get_mode(&current_mode) == ESP_OK) {
+        bool current_wifi_state = (current_mode != WIFI_MODE_NULL);
+        
+        // 只有当状态不一致时才切换WiFi
+        if (current_wifi_state != wifi_state) {
+            // 添加延迟，确保WiFi任务初始化完成
+            vTaskDelay(1000 / portTICK_PERIOD_MS);
+            
+            // 再次检查WiFi模式，确保没有其他操作正在修改它
+            if (esp_wifi_get_mode(&current_mode) == ESP_OK) {
+                // 再次确认当前状态
+                current_wifi_state = (current_mode != WIFI_MODE_NULL);
+                
+                if (current_wifi_state != wifi_state) {
+                    esp_err_t wifi_err = wifi_toggle(wifi_state);
+                    if (wifi_err != ESP_OK) {
+                        ESP_LOGE("MENU_NVS", "Failed to apply WiFi state: %s", esp_err_to_name(wifi_err));
+                        // 不要让错误导致系统崩溃，只记录日志
+                    }
+                }
+            }
+        }
+    }
+    
     // 记录加载后的状态
-    ESP_LOGI("MENU_NVS", "After loading config: layer=%d, ws2812_state=%d", 
-             current_keymap_layer, kob_ws2812_is_enable());
+    ESP_LOGI("MENU_NVS", "After loading config: layer=%d, ws2812_state=%d, wifi_state=%d", 
+             current_keymap_layer, kob_ws2812_is_enable(), 
+             ((esp_wifi_get_mode(&current_mode) == ESP_OK) && (current_mode != WIFI_MODE_NULL)));
 }
 
 /**
@@ -145,8 +181,15 @@ static void save_menu_config(void) {
     // 获取当前WS2812状态
     bool ws2812_state = kob_ws2812_is_enable();
     
+    // 获取当前WiFi状态
+    bool wifi_state = false;
+    wifi_mode_t current_mode;
+    if (esp_wifi_get_mode(&current_mode) == ESP_OK) {
+        wifi_state = (current_mode != WIFI_MODE_NULL);
+    }
+    
     // 保存所有菜单配置
-    menu_nvs_manager_save_all(g_menu_nvs_manager, current_keymap_layer, ws2812_state);
+    menu_nvs_manager_save_all(g_menu_nvs_manager, current_keymap_layer, ws2812_state, wifi_state);
 }
 
 /**
@@ -180,8 +223,8 @@ static void menuAction3(void) {
         OLED_ShowString(10, 10, "AP_IP:", OLED_6X8_HALF);
         OLED_ShowString(10, 20, client_ip, OLED_6X8_HALF);
     } else {
-        OLED_ShowString(10, 10, "get_ip_false", OLED_6X8_HALF);
-        OLED_ShowString(10, 30, "please_check", OLED_6X8_HALF);
+        OLED_ShowString(10, 10, "AP_IP:", OLED_6X8_HALF);
+        OLED_ShowString(10, 20, "0.0.0.0", OLED_6X8_HALF);
     }
     
     OLED_Update();
@@ -208,47 +251,134 @@ static void menuAction4(void){
 }
 
 /**
- * @brief 显示WiFi状态
+ * @brief 显示WiFi状态和详细信息（支持摇杆滚动查看）
  */
 static void menuActionWifiStatus(void) {
-    OLED_Clear();
+    // 定义显示页面状态
+    uint8_t page = 0;
+    const uint8_t total_pages = 2; // 总页数
+    bool exit_flag = false;
     
-    // 标题栏
-    OLED_ShowString(30, 0, "WiFi Status", OLED_6X8_HALF);
-    
-    // 检查WiFi是否已启动
-    wifi_mode_t mode;
-    if (esp_wifi_get_mode(&mode) == ESP_OK) {
-        // 显示WiFi模式
-        if (mode == WIFI_MODE_NULL) {
-            OLED_ShowString(10, 10, "Status: Off", OLED_8X16_HALF);
-        } else {
-            OLED_ShowString(10, 10, "Status: On ", OLED_8X16_HALF);
-            
-            // 显示具体模式
-            char mode_str[20];
-            if (mode == WIFI_MODE_AP) {
-                strcpy(mode_str, "Mode: AP");
-            } else if (mode == WIFI_MODE_STA) {
-                strcpy(mode_str, "Mode: STA");
-            } else if (mode == WIFI_MODE_APSTA) {
-                strcpy(mode_str, "Mode: AP+STA");
+    while (!exit_flag) {
+        OLED_Clear();
+        
+        // 检查WiFi是否已启动
+        wifi_mode_t mode;
+        if (esp_wifi_get_mode(&mode) == ESP_OK && mode != WIFI_MODE_NULL) {
+            // 第一页：标题、状态和模式
+            if (page == 0) {
+                // 标题栏 - 使用OLED_6X8_HALF字体
+                OLED_ShowString(30, 0, "WiFi Info", OLED_6X8_HALF);
+                
+                // 显示WiFi状态
+                OLED_ShowString(10, 9, "Status: On", OLED_6X8_HALF);
+                
+                // 显示具体模式
+                char mode_str[20];
+                if (mode == WIFI_MODE_AP) {
+                    strcpy(mode_str, "Mode: AP");
+                } else if (mode == WIFI_MODE_STA) {
+                    strcpy(mode_str, "Mode: STA");
+                } else if (mode == WIFI_MODE_APSTA) {
+                    strcpy(mode_str, "Mode: AP+STA");
+                }
+                OLED_ShowString(10, 17, mode_str, OLED_6X8_HALF);
             }
-            OLED_ShowString(10, 26, mode_str, OLED_8X16_HALF);
-            
-            // 显示连接状态 - 使用更短的文本避免超出宽度
-            if (wifi_is_connected()) {
-                OLED_ShowString(10, 42, "Connected", OLED_8X16_HALF);
-            } else {
-                OLED_ShowString(10, 42, "Disconnected", OLED_8X16_HALF);
+            // 第二页：连接状态和详细信息
+            else if (page == 1) {
+                // 标题栏 - 使用OLED_6X8_HALF字体
+                OLED_ShowString(30, 0, "WiFi Info", OLED_6X8_HALF);
+                
+                // 显示连接状态
+                if (wifi_is_connected()) {
+                    OLED_ShowString(10, 9, "Connected", OLED_6X8_HALF);
+                } else {
+                    OLED_ShowString(10, 9, "Disconnected", OLED_6X8_HALF);
+                }
+                
+                // 获取并显示AP信息
+                char ssid[32] = {0};
+                char password[64] = {0};
+                uint8_t ip_y_position = 17; // 默认IP地址位置
+                
+                if (wifi_get_ap_info(ssid, sizeof(ssid), password, sizeof(password)) == ESP_OK) {
+                    // 在AP模式下显示AP信息
+                    if (mode & WIFI_MODE_AP) {
+                        OLED_ShowString(10, 17, "AP:", OLED_6X8_HALF);
+                        // 截断过长的SSID以确保显示完整
+                        if (strlen(ssid) > 15) {
+                            char truncated_ssid[16];
+                            strncpy(truncated_ssid, ssid, 15);
+                            truncated_ssid[15] = '\0';
+                            OLED_ShowString(22, 17, truncated_ssid, OLED_6X8_HALF);
+                        } else {
+                            OLED_ShowString(22, 17, ssid, OLED_6X8_HALF);
+                        }
+                        // 在AP模式下，IP地址下移
+                        ip_y_position = 25;
+                    }
+                }
+                
+                // 显示当前IP地址，根据是否在AP模式调整Y坐标
+                OLED_ShowString(10, ip_y_position, "IP:", OLED_6X8_HALF);
+                if (strlen(client_ip) > 0) {
+                    OLED_ShowString(22, ip_y_position, client_ip, OLED_6X8_HALF);
+                } else {
+                    OLED_ShowString(22, ip_y_position, "0.0.0.0", OLED_6X8_HALF);
+                }
+            }
+        } else {
+            // WiFi未启用时显示简单信息
+            OLED_ShowString(30, 0, "WiFi Info", OLED_6X8_HALF);
+            OLED_ShowString(10, 18, "WiFi is Off", OLED_6X8_HALF);
+        }
+        
+        // 如果有多页，显示翻页提示
+        if (total_pages > 1) {
+            char page_info[10];
+            sprintf(page_info, "%d/%d", page + 1, total_pages);
+            OLED_ShowString(95, 0, page_info, OLED_6X8_HALF);
+        }
+        
+        OLED_Update();
+        
+        // 等待摇杆操作
+        uint8_t key_event = 0;
+        TickType_t start_time = xTaskGetTickCount();
+        
+        // 等待3秒或直到有按键事件
+        while ((xTaskGetTickCount() - start_time) < 3000 / portTICK_PERIOD_MS) {
+            if (xQueueReceive(keyQueue, &key_event, 100 / portTICK_PERIOD_MS) == pdTRUE) {
+                switch (key_event) {
+                    case MENU_OP_UP:
+                        // 上翻页
+                        if (page > 0) {
+                            page--;
+                        } else {
+                            page = total_pages - 1;
+                        }
+                        break;
+                    case MENU_OP_DOWN:
+                        // 下翻页
+                        if (page < total_pages - 1) {
+                            page++;
+                        } else {
+                            page = 0;
+                        }
+                        break;
+                    case MENU_OP_ENTER:
+                    case MENU_OP_BACK:
+                        // 退出显示
+                        exit_flag = true;
+                        break;
+                    default:
+                        break;
+                }
+                break; // 有按键事件，跳出循环刷新显示
             }
         }
-    } else {
-        OLED_ShowString(10, 10, "WiFi Unavailable", OLED_8X16_HALF);
     }
     
-    OLED_Update();
-    vTaskDelay(2000 / portTICK_PERIOD_MS);
     MenuManager_DisplayMenu(&menuManager, 0, 0, OLED_8X16_HALF);
 }
 
@@ -278,6 +408,8 @@ static void menuActionWifiToggle(void) {
     wifi_mode_t updated_mode;
     esp_wifi_get_mode(&updated_mode);
     
+    // 注意：WiFi状态的保存现在由wifi_toggle函数内部处理，不再需要这里保存
+    
     if (err == ESP_OK) {
         if (updated_mode == WIFI_MODE_NULL) {
             OLED_ShowString(10, 10, "WiFi Disabled", OLED_8X16_HALF);
@@ -293,65 +425,7 @@ static void menuActionWifiToggle(void) {
     MenuManager_DisplayMenu(&menuManager, 0, 0, OLED_8X16_HALF);
 }
 
-/**
- * @brief 显示WiFi详细信息
- */
-static void menuActionWifiInfo(void) {
-    OLED_Clear();
-    
-    // 标题栏
-    OLED_ShowString(30, 0, "WiFi Info", OLED_6X8_HALF);
-    
-    // 检查WiFi是否已启动
-    wifi_mode_t mode;
-    if (esp_wifi_get_mode(&mode) == ESP_OK && mode != WIFI_MODE_NULL) {
-        
-        // 获取并显示AP信息（使用较小字体）
-        char ssid[32] = {0};
-        char password[64] = {0};
-        if (wifi_get_ap_info(ssid, sizeof(ssid), password, sizeof(password)) == ESP_OK) {
-            // 在AP模式下显示AP信息
-            if (mode & WIFI_MODE_AP) {
-                OLED_ShowString(10, 10, "AP:", OLED_6X8_HALF);
-                // 截断过长的SSID以确保显示完整
-                if (strlen(ssid) > 15) {
-                    char truncated_ssid[16];
-                    strncpy(truncated_ssid, ssid, 15);
-                    truncated_ssid[15] = '\0';
-                    OLED_ShowString(10, 18, truncated_ssid, OLED_6X8_HALF);
-                } else {
-                    OLED_ShowString(10, 18, ssid, OLED_6X8_HALF);
-                }
-            }
-        }
-        
-        // 显示当前IP地址（使用较小字体以适应屏幕宽度）
-        if (strlen(client_ip) > 0) {
-            OLED_ShowString(10, 34, "IP:", OLED_6X8_HALF);
-            // 确保IP地址不超出屏幕宽度
-            if (strlen(client_ip) <= 12) {
-                OLED_ShowString(30, 34, client_ip, OLED_6X8_HALF);
-            } else {
-                // 对于较长的IP地址，分成两行显示
-                char ip_part1[13], ip_part2[13];
-                strncpy(ip_part1, client_ip, 12);
-                ip_part1[12] = '\0';
-                strcpy(ip_part2, client_ip + 12);
-                OLED_ShowString(30, 34, ip_part1, OLED_6X8_HALF);
-                OLED_ShowString(10, 42, ip_part2, OLED_6X8_HALF);
-            }
-        } else {
-            OLED_ShowString(10, 34, "IP: 0.0.0.0", OLED_6X8_HALF);
-        }
-        
-    } else {
-        OLED_ShowString(10, 10, "WiFi is Off", OLED_8X16_HALF);
-    }
-    
-    OLED_Update();
-    vTaskDelay(2000 / portTICK_PERIOD_MS);
-    MenuManager_DisplayMenu(&menuManager, 0, 0, OLED_8X16_HALF);
-}
+
 
 /**
  * @brief 显示HTML网址
@@ -391,6 +465,29 @@ static void menuActionHtmlUrl(void) {
         
     } else {
         OLED_ShowString(10, 10, "WiFi is Off", OLED_8X16_HALF);
+    }
+    
+    OLED_Update();
+    vTaskDelay(2000 / portTICK_PERIOD_MS);
+    MenuManager_DisplayMenu(&menuManager, 0, 0, OLED_8X16_HALF);
+}
+
+/**
+ * @brief 清除WiFi密码动作函数
+ */
+static void menuActionClearWifiPassword(void) {
+    OLED_Clear();
+    OLED_ShowString(10, 10, "Clear WiFi PW", OLED_8X16_HALF);
+    
+    // Call wifi_clear_password to clear WiFi config
+    esp_err_t err = wifi_clear_password();
+    
+    // Show operation result
+    if (err == ESP_OK) {
+        OLED_ShowString(10, 26, "Success", OLED_8X16_HALF);
+        OLED_ShowString(10, 32, "APSTA Mode", OLED_6X8_HALF);
+    } else {
+        OLED_ShowString(10, 26, "Failed", OLED_8X16_HALF);
     }
     
     OLED_Update();
@@ -523,10 +620,10 @@ typedef enum {
     MENU_ID_IP_DISPLAY,            // IP地址显示
     
     // WiFi相关菜单项
-    MENU_ID_WIFI_STATUS,           // WiFi状态
     MENU_ID_WIFI_TOGGLE,           // WiFi开关
     MENU_ID_WIFI_INFO,             // WiFi信息
-    MENU_ID_HTML_URL               // HTML网址
+    MENU_ID_HTML_URL,              // HTML网址
+    MENU_ID_CLEAR_WIFI_PASSWORD    // 清除WiFi密码
 
 } MenuItemId;
 
@@ -560,10 +657,10 @@ MenuItemDef menuItems[] = {
     {"IP显示", MENU_TYPE_ACTION, NULL, 0, 0, menuAction3, MENU_ID_TEST_DISPLAY},
     
     // WiFi相关菜单项 - 网络配置的子项
-    {"WiFi1", MENU_TYPE_ACTION, NULL, 0, 0, menuActionWifiStatus, MENU_ID_NETWORK_CONFIG},
-    {"WiFi2", MENU_TYPE_ACTION, NULL, 0, 0, menuActionWifiToggle, MENU_ID_NETWORK_CONFIG},
-    {"WiFi3", MENU_TYPE_ACTION, NULL, 0, 0, menuActionWifiInfo, MENU_ID_NETWORK_CONFIG},
-    {"HTML地址", MENU_TYPE_ACTION, NULL, 0, 0, menuActionHtmlUrl, MENU_ID_NETWORK_CONFIG},
+    {"WiFi开关", MENU_TYPE_ACTION, NULL, 0, 0, menuActionWifiToggle, MENU_ID_NETWORK_CONFIG},
+    {"WiFi信息", MENU_TYPE_ACTION, NULL, 0, 0, menuActionWifiStatus, MENU_ID_NETWORK_CONFIG},
+    {"配置页面", MENU_TYPE_ACTION, NULL, 0, 0, menuActionHtmlUrl, MENU_ID_NETWORK_CONFIG},
+    {"清除密码", MENU_TYPE_ACTION, NULL, 0, 0, menuActionClearWifiPassword, MENU_ID_NETWORK_CONFIG},
 };
 
 // 计算菜单项数量

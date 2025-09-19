@@ -177,8 +177,49 @@ static esp_err_t init_wifi(void) {
  */
 static esp_err_t apply_wifi_config(void) {
     ESP_LOGI(TAG, "Applying WiFi configuration...");
-    // WiFi配置可能在wifi_task内部处理
-    return ESP_OK;
+    
+    if (!g_menu_nvs_manager) {
+        ESP_LOGE(TAG, "Menu NVS manager not initialized");
+        return ESP_FAIL;
+    }
+    
+    // 从NVS加载WiFi状态
+    bool wifi_state = false;
+    esp_err_t err = menu_nvs_manager_load_wifi_state(g_menu_nvs_manager, &wifi_state);
+    if (err != ESP_OK && err != ESP_ERR_NOT_FOUND) {
+        ESP_LOGE(TAG, "Failed to load WiFi state: %s", esp_err_to_name(err));
+        return err;
+    }
+    
+    ESP_LOGI(TAG, "Loaded WiFi state from NVS: %d", wifi_state);
+    
+    // 从NVS加载WiFi模式
+    wifi_mode_t wifi_mode = WIFI_MODE_NULL;
+    err = menu_nvs_manager_load_wifi_mode(g_menu_nvs_manager, &wifi_mode);
+    if (err == ESP_OK) {
+        // 将加载的WiFi模式设置到全局saved_wifi_mode变量
+        extern wifi_mode_t saved_wifi_mode;
+        saved_wifi_mode = wifi_mode;
+        ESP_LOGI(TAG, "Loaded and set WiFi mode from NVS: %d", wifi_mode);
+    } else if (err == ESP_ERR_NOT_FOUND) {
+        ESP_LOGW(TAG, "WiFi mode not found in NVS, will use default");
+        // 当WiFi模式未找到时，我们不应该返回错误
+        err = ESP_OK;
+    } else {
+        ESP_LOGE(TAG, "Failed to load WiFi mode: %s", esp_err_to_name(err));
+    }
+    
+    // 如果WiFi状态为关闭，立即调用wifi_toggle(false)来关闭WiFi
+    // 这可以避免上电时检测到WiFi关闭但仍然打开再关闭的问题
+    if (!wifi_state) {
+        ESP_LOGI(TAG, "WiFi should be disabled, calling wifi_toggle(false)");
+        err = wifi_toggle(false);
+        if (err != ESP_OK) {
+            ESP_LOGE(TAG, "Failed to disable WiFi: %s", esp_err_to_name(err));
+        }
+    }
+    
+    return err;
 }
 
 /**
