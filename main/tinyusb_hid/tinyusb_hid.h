@@ -11,6 +11,21 @@ extern "C" {
 
 #include <stdint.h>
 #include "tusb.h"
+#include "../../../hid_device/usb_descriptors.h"  // 包含报告ID枚举定义
+#include "../../../main/keyboard_led/keyboard_led.h"  // 包含WS2812B_NUM定义
+
+// 键盘类型的灯阵列标识
+#define LAMP_ARRAY_KIND_KEYBOARD 0x00010000
+
+// LED数量宏定义，与keyboard_led.c保持一致
+#define MAX_LAMPS WS2812B_NUM
+
+// Windows Lighting 相关函数声明
+extern void windows_lighting_init(void);
+
+// Windows Lighting 全局变量声明
+extern uint8_t lamp_colors[MAX_LAMPS][4];  // RGBA颜色数据
+extern bool autonomous_mode;               // 自主模式标志
 
 
 typedef struct {

@@ -11,6 +11,8 @@ extern "C" {
 #include <stdbool.h>
 #include "OLED.h"  // 使用OLED显示函数
 #include "esp_log.h"
+#include <freertos/queue.h>
+
 
 // 菜单操作枚举
 typedef enum {

@@ -1,6 +1,7 @@
 #include "spi_scanner.h"
 #include "tinyusb_hid.h" // 添加tinyusb_hid头文件，用于访问tud_suspended()和tud_remote_wakeup()函数
 #include "ssd1306/oled_menu/oled_menu_display.h"
+#include "keyboard_led/keyboard_led.h"
 
 // 外部声明当前映射层变量
 extern uint8_t current_keymap_layer;
@@ -81,6 +82,9 @@ static hid_report_t build_hid_report(uint8_t _layer)
     const uint8_t remaining_bits = NUM_KEYS % 8; // 剩余位数
     uint8_t bit_index = 0;
 
+    // 保存当前按键状态用于下一次比较
+    static uint8_t prev_key_state[NUM_BYTES] = {0};
+
     keymap_t *keymap = malloc(sizeof(keymap_t) + NUM_KEYS * sizeof(uint16_t));
     hid_report_t kbd_hid_report = {0};
 
@@ -94,13 +98,31 @@ static hid_report_t build_hid_report(uint8_t _layer)
         // 计算当前字节有效位数
         bit_index = (i < full_bytes) ? 8 : remaining_bits;
         for(uint16_t j = 0; j < bit_index; j++) { 
-            if (received_data[i] & (0x80 >> j)) {
-                keymap->key_pressed_data[keymap->key_pressed_num++] = i * 8 + j;
-                //ESP_LOGI("usb_spi", "key_pressed_data: %d", i * 8 + j);
+            uint16_t key_index = i * 8 + j;
+            bool current_state = (received_data[i] & (0x80 >> j)) != 0;
+            bool prev_state = (prev_key_state[i] & (0x80 >> j)) != 0;
+            
+            // 检测按键状态变化
+            if (current_state != prev_state) {
+                // 将按键索引转换为行列坐标
+                // 这里假设键盘布局是5行4列，需要根据实际硬件布局调整
+                uint8_t row = key_index / 4;
+                uint8_t col = key_index % 4;
+                
+                // 处理RGB矩阵按键事件
+                kob_rgb_process_key_event(row, col, current_state);
+            }
+            
+            if (current_state) {
+                keymap->key_pressed_data[keymap->key_pressed_num++] = key_index;
+                //ESP_LOGI("usb_spi", "key_pressed_data: %d", key_index);
             } else {
                 keymap->key_release_num++;
             }
         }
+        
+        // 保存当前状态用于下一次比较
+        prev_key_state[i] = received_data[i];
     }
 
     for (uint16_t i = 0; i < keymap->key_pressed_num; i++) {

@@ -1,10 +1,72 @@
 #include "oled_menu_display.h"
-#include "oled_menu.h"
-#include <stdbool.h>
-#include "wifi_app/wifi_app.h" // 包含wifi_app头文件以访问client_ip全局变量和WiFi功能
-#include "spi_scanner/keymap_manager.h" // 包含按键映射管理器头文件
-#include "nvs_manager/menu_nvs_manager.h" // 包含菜单NVS管理器头文件
-#include "esp_wifi.h" // 包含WiFi相关定义
+#include "OLED.h"
+
+
+// 内部static函数声明
+static esp_err_t menu_nvs_init(void);
+static void load_menu_config(void);
+static void save_menu_config(void);
+static void menu_init(uint8_t fontSize);
+static void joystick_task(void *arg);
+static void menu_task(void *arg);
+
+// 灯效菜单操作函数声明
+static void menuActionRgbToggle(void);
+static void menuActionRgbModeSelect(void);
+static void menuActionRgbSpeedAdjust(void);
+static void menuActionRgbHueAdjust(void);
+static void menuActionRgbSatAdjust(void);
+static void menuActionRgbValAdjust(void);
+
+// 定义菜单项索引枚举，使菜单层次关系更加直观
+// 注意：新增菜单项时，请严格按照"根菜单→一级菜单→二级菜单→三级菜单"的顺序添加
+//       同一层级内的菜单项应按照功能分组，保持与menuItems数组中的顺序完全一致
+typedef enum {
+    // 根菜单
+    MENU_ID_MAIN,              
+    
+    // 一级菜单 (根菜单的子项)
+    MENU_ID_SYS_SETTINGS,          // 系统设置
+    MENU_ID_KEYBOARD_OPTIONS,      // 键盘选项
+    MENU_ID_NETWORK_CONFIG,        // 网络配置
+    MENU_ID_REBOOT_DEVICE,         // 重启设备
+    
+    // 二级菜单 - 系统设置的子项
+    MENU_ID_TIME_SETTINGS,         // 时间设置
+    MENU_ID_POWER_OPTIONS,         // 电源选项
+    MENU_ID_FACTORY_RESET,         // 恢复出厂设置
+    
+    // 二级菜单 - 键盘选项的子项
+    MENU_ID_MAPPING_LAYER,         // 映射层
+    MENU_ID_CONTRAST,              // 对比度
+    MENU_ID_TEST_DISPLAY,          // 测试显示
+    MENU_ID_RGB_EFFECTS,           // 灯效管理
+    
+    // 二级菜单 - 网络配置的子项
+    MENU_ID_WIFI_TOGGLE,           // WiFi开关
+    MENU_ID_WIFI_INFO,             // WiFi信息
+    MENU_ID_HTML_URL,              // HTML网址
+    MENU_ID_CLEAR_WIFI_PASSWORD,   // 清除WiFi密码
+    
+    // 三级菜单 - 灯效管理的子项
+    MENU_ID_RGB_TOGGLE,            // 开关灯效
+    MENU_ID_RGB_MODE_SELECT,       // 选择灯效模式
+    MENU_ID_RGB_SPEED_ADJUST,      // 调节灯效速度
+    MENU_ID_RGB_HUE_ADJUST,        // 调节色调
+    MENU_ID_RGB_SAT_ADJUST,        // 调节饱和度
+    MENU_ID_RGB_VAL_ADJUST,        // 调节亮度
+    
+    // 三级菜单 - 时间设置的子项
+    MENU_ID_SET_CURRENT_TIME,      // 设置当前时间
+    MENU_ID_SET_TIME_FORMAT,       // 设置时间格式
+    
+    // 三级菜单 - 测试显示的子项
+    MENU_ID_ADJUST_BRIGHTNESS,     // 设置亮度
+    MENU_ID_IP_DISPLAY             // IP地址显示
+
+} MenuItemId;
+
+// 全局变量定义
 
 // 按键状态队列
 static QueueHandle_t keyQueue = NULL;
@@ -17,6 +79,8 @@ uint8_t current_keymap_layer = 0; // 默认使用层0
 
 // 全局菜单NVS管理器句柄
 static MenuNvsManager_t* g_menu_nvs_manager = NULL;
+
+// NVS相关函数实现
 
 /**
  * @brief 初始化菜单NVS管理器
@@ -192,6 +256,8 @@ static void save_menu_config(void) {
     menu_nvs_manager_save_all(g_menu_nvs_manager, current_keymap_layer, ws2812_state, wifi_state);
 }
 
+// 菜单操作函数实现
+
 /**
  * @brief 示例菜单操作函数
  */
@@ -247,251 +313,6 @@ static void menuAction4(void){
     save_menu_config();
     
     vTaskDelay(1000 / portTICK_PERIOD_MS);
-    MenuManager_DisplayMenu(&menuManager, 0, 0, OLED_8X16_HALF);
-}
-
-/**
- * @brief 显示WiFi状态和详细信息（支持摇杆滚动查看）
- */
-static void menuActionWifiStatus(void) {
-    // 定义显示页面状态
-    uint8_t page = 0;
-    const uint8_t total_pages = 2; // 总页数
-    bool exit_flag = false;
-    
-    while (!exit_flag) {
-        OLED_Clear();
-        
-        // 检查WiFi是否已启动
-        wifi_mode_t mode;
-        if (esp_wifi_get_mode(&mode) == ESP_OK && mode != WIFI_MODE_NULL) {
-            // 第一页：标题、状态和模式
-            if (page == 0) {
-                // 标题栏 - 使用OLED_6X8_HALF字体
-                OLED_ShowString(30, 0, "WiFi Info", OLED_6X8_HALF);
-                
-                // 显示WiFi状态
-                OLED_ShowString(10, 9, "Status: On", OLED_6X8_HALF);
-                
-                // 显示具体模式
-                char mode_str[20];
-                if (mode == WIFI_MODE_AP) {
-                    strcpy(mode_str, "Mode: AP");
-                } else if (mode == WIFI_MODE_STA) {
-                    strcpy(mode_str, "Mode: STA");
-                } else if (mode == WIFI_MODE_APSTA) {
-                    strcpy(mode_str, "Mode: AP+STA");
-                }
-                OLED_ShowString(10, 17, mode_str, OLED_6X8_HALF);
-            }
-            // 第二页：连接状态和详细信息
-            else if (page == 1) {
-                // 标题栏 - 使用OLED_6X8_HALF字体
-                OLED_ShowString(30, 0, "WiFi Info", OLED_6X8_HALF);
-                
-                // 显示连接状态
-                if (wifi_is_connected()) {
-                    OLED_ShowString(10, 9, "Connected", OLED_6X8_HALF);
-                } else {
-                    OLED_ShowString(10, 9, "Disconnected", OLED_6X8_HALF);
-                }
-                
-                // 获取并显示AP信息
-                char ssid[32] = {0};
-                char password[64] = {0};
-                uint8_t ip_y_position = 17; // 默认IP地址位置
-                
-                if (wifi_get_ap_info(ssid, sizeof(ssid), password, sizeof(password)) == ESP_OK) {
-                    // 在AP模式下显示AP信息
-                    if (mode & WIFI_MODE_AP) {
-                        OLED_ShowString(10, 17, "AP:", OLED_6X8_HALF);
-                        // 截断过长的SSID以确保显示完整
-                        if (strlen(ssid) > 15) {
-                            char truncated_ssid[16];
-                            strncpy(truncated_ssid, ssid, 15);
-                            truncated_ssid[15] = '\0';
-                            OLED_ShowString(22, 17, truncated_ssid, OLED_6X8_HALF);
-                        } else {
-                            OLED_ShowString(22, 17, ssid, OLED_6X8_HALF);
-                        }
-                        // 在AP模式下，IP地址下移
-                        ip_y_position = 25;
-                    }
-                }
-                
-                // 显示当前IP地址，根据是否在AP模式调整Y坐标
-                OLED_ShowString(10, ip_y_position, "IP:", OLED_6X8_HALF);
-                if (strlen(client_ip) > 0) {
-                    OLED_ShowString(22, ip_y_position, client_ip, OLED_6X8_HALF);
-                } else {
-                    OLED_ShowString(22, ip_y_position, "0.0.0.0", OLED_6X8_HALF);
-                }
-            }
-        } else {
-            // WiFi未启用时显示简单信息
-            OLED_ShowString(30, 0, "WiFi Info", OLED_6X8_HALF);
-            OLED_ShowString(10, 18, "WiFi is Off", OLED_6X8_HALF);
-        }
-        
-        // 如果有多页，显示翻页提示
-        if (total_pages > 1) {
-            char page_info[10];
-            sprintf(page_info, "%d/%d", page + 1, total_pages);
-            OLED_ShowString(95, 0, page_info, OLED_6X8_HALF);
-        }
-        
-        OLED_Update();
-        
-        // 等待摇杆操作
-        uint8_t key_event = 0;
-        TickType_t start_time = xTaskGetTickCount();
-        
-        // 等待3秒或直到有按键事件
-        while ((xTaskGetTickCount() - start_time) < 3000 / portTICK_PERIOD_MS) {
-            if (xQueueReceive(keyQueue, &key_event, 100 / portTICK_PERIOD_MS) == pdTRUE) {
-                switch (key_event) {
-                    case MENU_OP_UP:
-                        // 上翻页
-                        if (page > 0) {
-                            page--;
-                        } else {
-                            page = total_pages - 1;
-                        }
-                        break;
-                    case MENU_OP_DOWN:
-                        // 下翻页
-                        if (page < total_pages - 1) {
-                            page++;
-                        } else {
-                            page = 0;
-                        }
-                        break;
-                    case MENU_OP_ENTER:
-                    case MENU_OP_BACK:
-                        // 退出显示
-                        exit_flag = true;
-                        break;
-                    default:
-                        break;
-                }
-                break; // 有按键事件，跳出循环刷新显示
-            }
-        }
-    }
-    
-    MenuManager_DisplayMenu(&menuManager, 0, 0, OLED_8X16_HALF);
-}
-
-/**
- * @brief 切换WiFi开关
- */
-static void menuActionWifiToggle(void) {
-    OLED_Clear();
-    
-    // 检查当前WiFi状态
-    wifi_mode_t current_mode;
-    esp_err_t err = esp_wifi_get_mode(&current_mode);
-    
-    if (err != ESP_OK) {
-        OLED_ShowString(10, 10, "Get Mode Failed", OLED_8X16_HALF);
-        OLED_Update();
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
-        MenuManager_DisplayMenu(&menuManager, 0, 0, OLED_8X16_HALF);
-        return;
-    }
-    
-    // 确定要切换到的新状态
-    bool new_state = (current_mode == WIFI_MODE_NULL);
-    err = wifi_toggle(new_state);
-    
-    // 重新获取WiFi状态以确认操作结果
-    wifi_mode_t updated_mode;
-    esp_wifi_get_mode(&updated_mode);
-    
-    // 注意：WiFi状态的保存现在由wifi_toggle函数内部处理，不再需要这里保存
-    
-    if (err == ESP_OK) {
-        if (updated_mode == WIFI_MODE_NULL) {
-            OLED_ShowString(10, 10, "WiFi Disabled", OLED_8X16_HALF);
-        } else {
-            OLED_ShowString(10, 10, "WiFi Enabled", OLED_8X16_HALF);
-        }
-    } else {
-        OLED_ShowString(10, 10, "Toggle Failed", OLED_8X16_HALF);
-    }
-    
-    OLED_Update();
-    vTaskDelay(1000 / portTICK_PERIOD_MS);
-    MenuManager_DisplayMenu(&menuManager, 0, 0, OLED_8X16_HALF);
-}
-
-
-
-/**
- * @brief 显示HTML网址
- */
-static void menuActionHtmlUrl(void) {
-    OLED_Clear();
-    
-    // 标题栏
-    OLED_ShowString(30, 0, "HTML URL", OLED_6X8_HALF);
-    
-    // 检查WiFi是否已启动并获取IP
-    wifi_mode_t mode;
-    if (esp_wifi_get_mode(&mode) == ESP_OK && mode != WIFI_MODE_NULL) {
-        
-        if (strlen(client_ip) > 0) {
-            // 简化显示，只显示关键信息
-            OLED_ShowString(10, 10, "Visit:", OLED_6X8_HALF);
-            
-            // 显示IP地址（使用更小的字体）
-            OLED_ShowString(10, 20, client_ip, OLED_6X8_HALF);
-            
-            // 显示端口号（如果不是80）
-            uint16_t port = wifi_get_http_port();
-            if (port != 80) {
-                char port_str[10];
-                sprintf(port_str, ":%d", port);
-                // 计算IP地址的显示长度，确保端口号显示在合适的位置
-                int ip_width = strlen(client_ip) * 6; // 每个字符6像素
-                OLED_ShowString(10 + ip_width, 20, port_str, OLED_6X8_HALF);
-            }
-            
-            // 在下方显示简短提示
-            OLED_ShowString(10, 34, "In browser", OLED_6X8_HALF);
-        } else {
-            OLED_ShowString(10, 10, "IP: 0.0.0.0", OLED_8X16_HALF);
-        }
-        
-    } else {
-        OLED_ShowString(10, 10, "WiFi is Off", OLED_8X16_HALF);
-    }
-    
-    OLED_Update();
-    vTaskDelay(2000 / portTICK_PERIOD_MS);
-    MenuManager_DisplayMenu(&menuManager, 0, 0, OLED_8X16_HALF);
-}
-
-/**
- * @brief 清除WiFi密码动作函数
- */
-static void menuActionClearWifiPassword(void) {
-    OLED_Clear();
-    OLED_ShowString(10, 10, "Clear WiFi PW", OLED_8X16_HALF);
-    
-    // Call wifi_clear_password to clear WiFi config
-    esp_err_t err = wifi_clear_password();
-    
-    // Show operation result
-    if (err == ESP_OK) {
-        OLED_ShowString(10, 26, "Success", OLED_8X16_HALF);
-        OLED_ShowString(10, 32, "APSTA Mode", OLED_6X8_HALF);
-    } else {
-        OLED_ShowString(10, 26, "Failed", OLED_8X16_HALF);
-    }
-    
-    OLED_Update();
-    vTaskDelay(2000 / portTICK_PERIOD_MS);
     MenuManager_DisplayMenu(&menuManager, 0, 0, OLED_8X16_HALF);
 }
 
@@ -587,50 +408,338 @@ static void menuActionMappingLayer(void) {
     MenuManager_DisplayMenu(&menuManager, 0, 0, OLED_8X16_HALF);
 }
 
+// 灯效菜单操作函数实现
 
-// 定义菜单项索引枚举，使菜单层次关系更加直观
-typedef enum {
-    MENU_ID_MAIN ,              // 根菜单
+/**
+ * @brief 切换灯效开关
+ */
+static void menuActionRgbToggle(void) {
+    OLED_Clear();
+    if(kob_ws2812_is_enable() == false){
+        kob_ws2812_enable(true);
+        OLED_ShowString(20, 8, "RGB Enabled", OLED_8X16_HALF);
+    }else{
+        kob_ws2812_enable(false);
+        OLED_ShowString(16, 8, "RGB Disabled", OLED_8X16_HALF);
+    }
+    OLED_Update();
     
-    // 一级菜单 (根菜单的子项)
-    MENU_ID_SYS_SETTINGS,          // 系统设置
-    MENU_ID_KEYBOARD_OPTIONS,       // 键盘选项
-    MENU_ID_NETWORK_CONFIG,        // 网络配置
-    MENU_ID_REBOOT_DEVICE,         // 重启设备
+    // 保存WS2812状态到NVS
+    save_menu_config();
     
-    // 二级菜单 - 系统设置的子项
-    MENU_ID_TIME_SETTINGS,         // 时间设置
-    MENU_ID_POWER_OPTIONS,         // 电源选项
-    
-    // 二级菜单 - 键盘选项的子项
-    MENU_ID_MAPPING_LAYER,         // 映射层
-    MENU_ID_FACTORY_RESET,         // 恢复出厂设置
-    
-    // 二级菜单 - 键盘选项的子项
-    MENU_ID_BRIGHTNESS,            // 亮度
-    MENU_ID_CONTRAST,              // 对比度
-    MENU_ID_TEST_DISPLAY,          // 测试显示
-    
-    // 三级菜单 - 时间设置的子项
-    MENU_ID_SET_CURRENT_TIME,      // 设置当前时间
-    MENU_ID_SET_TIME_FORMAT,       // 设置时间格式
-    
-    // 三级菜单 - 亮度的子项
-    MENU_ID_ADJUST_BRIGHTNESS,     // 设置亮度
-    MENU_ID_IP_DISPLAY,            // IP地址显示
-    
-    // WiFi相关菜单项
-    MENU_ID_WIFI_TOGGLE,           // WiFi开关
-    MENU_ID_WIFI_INFO,             // WiFi信息
-    MENU_ID_HTML_URL,              // HTML网址
-    MENU_ID_CLEAR_WIFI_PASSWORD    // 清除WiFi密码
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
+    MenuManager_DisplayMenu(&menuManager, 0, 0, OLED_8X16_HALF);
+}
 
-} MenuItemId;
+/**
+ * @brief 选择灯效模式
+ */
+static void menuActionRgbModeSelect(void) {
+    OLED_Clear();
+    
+    // 获取当前灯效模式
+    led_effect_config_t* config = kob_rgb_get_config();
+    
+    // 显示当前模式
+    char mode_str[30];
+    sprintf(mode_str, "Mode: %d", config->mode);
+    OLED_ShowString(10, 4, mode_str, OLED_6X8_HALF);
+    OLED_ShowString(10, 16, "Up/Down: Change", OLED_6X8_HALF);
+    OLED_ShowString(10, 24, "Enter: Save", OLED_6X8_HALF);
+    OLED_Update();
+    
+    // 等待用户输入
+    bool confirmed = false;
+    while (!confirmed) {
+        MenuOperation op;
+        if (xQueueReceive(keyQueue, &op, 100 / portTICK_PERIOD_MS) == pdTRUE) {
+            switch (op) {
+                case MENU_OP_UP:
+                    kob_rgb_matrix_prev_mode();
+                    break;
+                case MENU_OP_DOWN:
+                    kob_rgb_matrix_next_mode();
+                    break;
+                case MENU_OP_ENTER:
+                    // 保存选择并退出
+                    OLED_Clear();
+                    OLED_ShowString(44, 4, "Saved!", OLED_8X16_HALF);
+                    OLED_Update();
+                    vTaskDelay(500 / portTICK_PERIOD_MS);
+                    confirmed = true;
+                    break;
+                case MENU_OP_BACK:
+                    // 不保存退出
+                    confirmed = true;
+                    break;
+                default:
+                    break;
+            }
+            
+            // 更新显示
+            if (op == MENU_OP_UP || op == MENU_OP_DOWN) {
+                config = kob_rgb_get_config();
+                sprintf(mode_str, "Mode: %d", config->mode);
+                OLED_Clear();
+                OLED_ShowString(10, 4, mode_str, OLED_6X8_HALF);
+                OLED_ShowString(10, 16, "Up/Down: Change", OLED_6X8_HALF);
+                OLED_ShowString(10, 24, "Enter: Save", OLED_6X8_HALF);
+                OLED_Update();
+            }
+        }
+    }
+    
+    MenuManager_DisplayMenu(&menuManager, 0, 0, OLED_8X16_HALF);
+}
+
+/**
+ * @brief 调节灯效速度
+ */
+static void menuActionRgbSpeedAdjust(void) {
+    OLED_Clear();
+    
+    // 获取当前速度值
+    led_effect_config_t* config = kob_rgb_get_config();
+    
+    // 显示当前速度
+    char speed_str[30];
+    sprintf(speed_str, "Speed: %d", config->speed);
+    OLED_ShowString(10, 4, speed_str, OLED_6X8_HALF);
+    OLED_ShowString(10, 16, "Up: Increase", OLED_6X8_HALF);
+    OLED_ShowString(10, 24, "Down: Decrease", OLED_6X8_HALF);
+    OLED_Update();
+    
+    // 等待用户输入
+    bool confirmed = false;
+    while (!confirmed) {
+        MenuOperation op;
+        if (xQueueReceive(keyQueue, &op, 100 / portTICK_PERIOD_MS) == pdTRUE) {
+            switch (op) {
+                case MENU_OP_UP:
+                    kob_rgb_matrix_increase_speed();
+                    break;
+                case MENU_OP_DOWN:
+                    kob_rgb_matrix_decrease_speed();
+                    break;
+                case MENU_OP_ENTER:
+                    // 保存选择并退出
+                    OLED_Clear();
+                    OLED_ShowString(44, 4, "Saved!", OLED_6X8_HALF);
+                    OLED_Update();
+                    vTaskDelay(500 / portTICK_PERIOD_MS);
+                    confirmed = true;
+                    break;
+                case MENU_OP_BACK:
+                    // 不保存退出
+                    confirmed = true;
+                    break;
+                default:
+                    break;
+            }
+            
+            // 更新显示
+            if (op == MENU_OP_UP || op == MENU_OP_DOWN) {
+                config = kob_rgb_get_config();
+                sprintf(speed_str, "Speed: %d", config->speed);
+                OLED_Clear();
+                OLED_ShowString(10, 4, speed_str, OLED_6X8_HALF);
+                OLED_ShowString(10, 16, "Up: Increase", OLED_6X8_HALF);
+                OLED_ShowString(10, 24, "Down: Decrease", OLED_6X8_HALF);
+                OLED_Update();
+            }
+        }
+    }
+    
+    MenuManager_DisplayMenu(&menuManager, 0, 0, OLED_8X16_HALF);
+}
+
+/**
+ * @brief 调节色调
+ */
+static void menuActionRgbHueAdjust(void) {
+    OLED_Clear();
+    
+    // 获取当前色调值
+    led_effect_config_t* config = kob_rgb_get_config();
+    
+    // 显示当前色调
+    char hue_str[30];
+    sprintf(hue_str, "Hue: %d", config->hue);
+    OLED_ShowString(10, 4, hue_str, OLED_6X8_HALF);
+    OLED_ShowString(10, 16, "Up: Increase", OLED_6X8_HALF);
+    OLED_ShowString(10, 24, "Down: Decrease", OLED_6X8_HALF);
+    OLED_Update();
+    
+    // 等待用户输入
+    bool confirmed = false;
+    while (!confirmed) {
+        MenuOperation op;
+        if (xQueueReceive(keyQueue, &op, 100 / portTICK_PERIOD_MS) == pdTRUE) {
+            switch (op) {
+                case MENU_OP_UP:
+                    kob_rgb_matrix_increase_hue();
+                    break;
+                case MENU_OP_DOWN:
+                    kob_rgb_matrix_decrease_hue();
+                    break;
+                case MENU_OP_ENTER:
+                    // 保存选择并退出
+                    OLED_Clear();
+                    OLED_ShowString(44, 4, "Saved!", OLED_8X16_HALF);
+                    OLED_Update();
+                    vTaskDelay(500 / portTICK_PERIOD_MS);
+                    confirmed = true;
+                    break;
+                case MENU_OP_BACK:
+                    // 不保存退出
+                    confirmed = true;
+                    break;
+                default:
+                    break;
+            }
+            
+            // 更新显示
+            if (op == MENU_OP_UP || op == MENU_OP_DOWN) {
+                config = kob_rgb_get_config();
+                sprintf(hue_str, "Hue: %d", config->hue);
+                OLED_Clear();
+                OLED_ShowString(10, 4, hue_str, OLED_6X8_HALF);
+                OLED_ShowString(10, 16, "Up: Increase", OLED_6X8_HALF);
+                OLED_ShowString(10, 24, "Down: Decrease", OLED_6X8_HALF);
+                OLED_Update();
+            }
+        }
+    }
+    
+    MenuManager_DisplayMenu(&menuManager, 0, 0, OLED_8X16_HALF);
+}
+
+/**
+ * @brief 调节饱和度
+ */
+static void menuActionRgbSatAdjust(void) {
+    OLED_Clear();
+    
+    // 获取当前饱和度值
+    led_effect_config_t* config = kob_rgb_get_config();
+    
+    // 显示当前饱和度
+    char sat_str[30];
+    sprintf(sat_str, "Saturation: %d", config->sat);
+    OLED_ShowString(10, 4, sat_str, OLED_6X8_HALF);
+    OLED_ShowString(10, 16, "Up: Increase", OLED_6X8_HALF);
+    OLED_ShowString(10, 24, "Down: Decrease", OLED_6X8_HALF);
+    OLED_Update();
+    
+    // 等待用户输入
+    bool confirmed = false;
+    while (!confirmed) {
+        MenuOperation op;
+        if (xQueueReceive(keyQueue, &op, 100 / portTICK_PERIOD_MS) == pdTRUE) {
+            switch (op) {
+                case MENU_OP_UP:
+                    kob_rgb_matrix_increase_sat();
+                    break;
+                case MENU_OP_DOWN:
+                    kob_rgb_matrix_decrease_sat();
+                    break;
+                case MENU_OP_ENTER:
+                    // 保存选择并退出
+                    OLED_Clear();
+                    OLED_ShowString(44, 4, "Saved!", OLED_8X16_HALF);
+                    OLED_Update();
+                    vTaskDelay(500 / portTICK_PERIOD_MS);
+                    confirmed = true;
+                    break;
+                case MENU_OP_BACK:
+                    // 不保存退出
+                    confirmed = true;
+                    break;
+                default:
+                    break;
+            }
+            
+            // 更新显示
+            if (op == MENU_OP_UP || op == MENU_OP_DOWN) {
+                config = kob_rgb_get_config();
+                sprintf(sat_str, "Saturation: %d", config->sat);
+                OLED_Clear();
+                OLED_ShowString(10, 4, sat_str, OLED_6X8_HALF);
+                OLED_ShowString(10, 16, "Up: Increase", OLED_6X8_HALF);
+                OLED_ShowString(10, 24, "Down: Decrease", OLED_6X8_HALF);
+                OLED_Update();
+            }
+        }
+    }
+    
+    MenuManager_DisplayMenu(&menuManager, 0, 0, OLED_8X16_HALF);
+}
+
+/**
+ * @brief 调节亮度
+ */
+static void menuActionRgbValAdjust(void) {
+    OLED_Clear();
+    
+    // 获取当前亮度值
+    led_effect_config_t* config = kob_rgb_get_config();
+    
+    // 显示当前亮度
+    char val_str[30];
+    sprintf(val_str, "Brightness: %d", config->val);
+    OLED_ShowString(10, 4, val_str, OLED_6X8_HALF);
+    OLED_ShowString(10, 16, "Up: Increase", OLED_6X8_HALF);
+    OLED_ShowString(10, 24, "Down: Decrease", OLED_6X8_HALF);
+    OLED_Update();
+    
+    // 等待用户输入
+    bool confirmed = false;
+    while (!confirmed) {
+        MenuOperation op;
+        if (xQueueReceive(keyQueue, &op, 100 / portTICK_PERIOD_MS) == pdTRUE) {
+            switch (op) {
+                case MENU_OP_UP:
+                    kob_rgb_matrix_increase_val();
+                    break;
+                case MENU_OP_DOWN:
+                    kob_rgb_matrix_decrease_val();
+                    break;
+                case MENU_OP_ENTER:
+                    // 保存选择并退出
+                    OLED_Clear();
+                    OLED_ShowString(44, 4, "Saved!", OLED_8X16_HALF);
+                    OLED_Update();
+                    vTaskDelay(500 / portTICK_PERIOD_MS);
+                    confirmed = true;
+                    break;
+                case MENU_OP_BACK:
+                    // 不保存退出
+                    confirmed = true;
+                    break;
+                default:
+                    break;
+            }
+            
+            // 更新显示
+            if (op == MENU_OP_UP || op == MENU_OP_DOWN) {
+                config = kob_rgb_get_config();
+                sprintf(val_str, "Brightness: %d", config->val);
+                OLED_Clear();
+                OLED_ShowString(10, 4, val_str, OLED_6X8_HALF);
+                OLED_ShowString(10, 16, "Up: Increase", OLED_6X8_HALF);
+                OLED_ShowString(10, 24, "Down: Decrease", OLED_6X8_HALF);
+                OLED_Update();
+            }
+        }
+    }
+    
+    MenuManager_DisplayMenu(&menuManager, 0, 0, OLED_8X16_HALF);
+}
 
 // 菜单定义结构
 MenuItemDef menuItems[] = {
     // 根菜单
-    {"Main Menu", MENU_TYPE_TEXT, NULL, 0, 0, NULL, -1},
+    {"Main Menu", MENU_TYPE_IMAGE, Image_setings, 32, 32, NULL, -1},
     
     // 一级菜单 (父菜单为根菜单)
     {"系统设置", MENU_TYPE_IMAGE, Image_setings, 30, 30, NULL, MENU_ID_MAIN},
@@ -643,16 +752,25 @@ MenuItemDef menuItems[] = {
     {"电源选项", MENU_TYPE_TEXT, NULL, 0, 0, NULL, MENU_ID_SYS_SETTINGS},
     {"恢复出厂设置", MENU_TYPE_ACTION, NULL, 0, 0, menuAction2, MENU_ID_SYS_SETTINGS},
     
-    // 二级菜单 - 显示选项的子项
+    // 二级菜单 - 键盘选项的子项
     {"映射层", MENU_TYPE_ACTION, NULL, 0, 0, menuActionMappingLayer, MENU_ID_KEYBOARD_OPTIONS},
     {"对比度", MENU_TYPE_TEXT, NULL, 0, 0, NULL, MENU_ID_KEYBOARD_OPTIONS},
-    {"测试显示", MENU_TYPE_ACTION, NULL, 0, 0, menuAction3, MENU_ID_KEYBOARD_OPTIONS},
+    {"测试显示", MENU_TYPE_TEXT, NULL, 0, 0, NULL, MENU_ID_KEYBOARD_OPTIONS},
+    {"RGB Effects", MENU_TYPE_TEXT, NULL, 0, 0, NULL, MENU_ID_KEYBOARD_OPTIONS},
+    
+    // 三级菜单 - 灯效管理的子项
+    {"Toggle RGB", MENU_TYPE_ACTION, NULL, 0, 0, menuActionRgbToggle, MENU_ID_RGB_EFFECTS},
+    {"Effect Mode", MENU_TYPE_ACTION, NULL, 0, 0, menuActionRgbModeSelect, MENU_ID_RGB_EFFECTS},
+    {"Speed", MENU_TYPE_ACTION, NULL, 0, 0, menuActionRgbSpeedAdjust, MENU_ID_RGB_EFFECTS},
+    {"Hue", MENU_TYPE_ACTION, NULL, 0, 0, menuActionRgbHueAdjust, MENU_ID_RGB_EFFECTS},
+    {"Saturation", MENU_TYPE_ACTION, NULL, 0, 0, menuActionRgbSatAdjust, MENU_ID_RGB_EFFECTS},
+    {"Brightness", MENU_TYPE_ACTION, NULL, 0, 0, menuActionRgbValAdjust, MENU_ID_RGB_EFFECTS},
     
     // 三级菜单 - 时间设置的子项
     {"设置当前时间", MENU_TYPE_ACTION, NULL, 0, 0, menuAction1, MENU_ID_TIME_SETTINGS},
     {"设置时间格式", MENU_TYPE_ACTION, NULL, 0, 0, menuAction2, MENU_ID_TIME_SETTINGS},
     
-    // 三级菜单 - 亮度的子项
+    // 三级菜单 - 测试显示的子项
     {"设置亮度", MENU_TYPE_ACTION, NULL, 0, 0, menuAction2, MENU_ID_TEST_DISPLAY},
     {"IP显示", MENU_TYPE_ACTION, NULL, 0, 0, menuAction3, MENU_ID_TEST_DISPLAY},
     
@@ -666,11 +784,19 @@ MenuItemDef menuItems[] = {
 // 计算菜单项数量
 const uint8_t MENU_ITEM_COUNT = sizeof(menuItems)/sizeof(MenuItemDef);
 
+// 菜单初始化函数
+
 /**
  * @brief 初始化菜单结构
  */
 static void menu_init(uint8_t fontSize) {
     MenuManager_Init(&menuManager);
+    
+    // 验证MenuItemId枚举与menuItems数组的一致性
+    // 确保MenuItemId枚举中最大的值不超过menuItems数组的大小
+    if (MENU_ID_IP_DISPLAY >= MENU_ITEM_COUNT) {
+        ESP_LOGE("OLED_MENU", "MenuItemId枚举数量与menuItems数组数量不一致! 请检查MenuItemId枚举定义.");
+    }
     
     // 自动构建菜单树
     MenuItem* root = build_menu_tree();
@@ -681,6 +807,8 @@ static void menu_init(uint8_t fontSize) {
     // 显示初始菜单
     MenuManager_DisplayMenu(&menuManager, 0, 0, fontSize);
 }
+
+// 任务函数
 
 /**
  * @brief 摇杆扫描任务 - 检测摇杆方向和按键状态
@@ -770,6 +898,8 @@ static void menu_task(void *arg) {
     }
 }
 
+// 公共API函数
+
 /**
  * @brief 菜单系统入口函数
  */
@@ -793,4 +923,13 @@ void MenuManager_ClearKeyQueue(void) {
     if (keyQueue != NULL) {
         xQueueReset(keyQueue);
     }
+}
+
+// 公共访问函数定义
+QueueHandle_t get_key_queue(void) {
+    return keyQueue;
+}
+
+MenuManager* get_menu_manager(void) {
+    return &menuManager;
 }

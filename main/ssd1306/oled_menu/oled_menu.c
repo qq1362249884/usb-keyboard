@@ -1,7 +1,5 @@
 #include "oled_menu.h"
-#include "esp_log.h"
-#include <stdint.h>
-#include <freertos/queue.h>
+
 
 // 前向声明，避免循环引用
 void MenuManager_ClearKeyQueue(void);
