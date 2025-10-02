@@ -36,7 +36,7 @@ static bool check_dependencies(const module_init_desc_t *desc) {
 static void module_init_task(void *arg) {
     module_init_desc_t *desc = (module_init_desc_t *)arg;
     const char *module_names[] = {
-        "NVS", "WS2812", "OLED", "KEYBOARD", "WIFI"
+        "NVS", "WS2812", "OLED", "KEYBOARD", "WIFI", "SLEEP_MODE"
     };
 
     // 等待依赖模块初始化完成

@@ -21,7 +21,11 @@ static const char *TAG = "tinyusb_hid.c";
 
 
 static tinyusb_hid_t *s_tinyusb_hid = NULL;
-static bool s_remote_wakeup_enabled = false; // 跟踪远程唤醒功能是否被主机允许
+extern bool s_remote_wakeup_enabled; // 跟踪远程唤醒功能是否被主机允许
+bool s_remote_wakeup_enabled = false; // 全局变量定义
+
+// 控制报告发送的标志
+static bool s_report_enabled = true;
 
 
 /**
@@ -91,8 +95,12 @@ void tinyusb_hid_keyboard_report(hid_report_t report)
             break;
         }
 
-        // 将报告发送到队列进行处理
+        // 根据标志决定是否发送报告到队列
+    if (s_report_enabled) {
         xQueueSend(s_tinyusb_hid->hid_queue, &report, 0);
+    } else {
+        ESP_LOGD(TAG, "HID report sending is disabled");
+    }
     }
 }
 
@@ -262,6 +270,22 @@ void windows_lighting_init(void) {
  * @param reqlen 请求的长度
  * @return 填充的报告长度，返回0将导致请求被STALL
  */
+/**
+ * @brief 控制HID报告发送
+ * 
+ * @param enable true表示启用报告发送，false表示禁用报告发送
+ */
+void tinyusb_hid_enable_report(bool enable)
+{
+    s_report_enabled = enable;
+    ESP_LOGI(TAG, "HID report sending %s", enable ? "enabled" : "disabled");
+    
+    // 如果禁用报告发送，清空队列中的所有报告
+    if (!enable && s_tinyusb_hid && s_tinyusb_hid->hid_queue) {
+        xQueueReset(s_tinyusb_hid->hid_queue);
+    }
+}
+
 uint16_t tud_hid_get_report_cb(uint8_t itf, uint8_t report_id, hid_report_type_t report_type, uint8_t *buffer, uint16_t reqlen)
 {
     (void) itf;
@@ -449,6 +473,7 @@ static bool s_saved_ws2812_state = false;
 void tud_suspend_cb(bool remote_wakeup_en)
 {
     s_remote_wakeup_enabled = remote_wakeup_en;
+    ESP_LOGI(TAG, "USB Suspended - Remote wakeup allowed: %s", remote_wakeup_en ? "YES" : "NO");
     
     // 保存当前WS2812状态并关闭灯光效果以节省电量
     s_saved_ws2812_state = kob_ws2812_is_enable();

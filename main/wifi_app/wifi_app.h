@@ -4,52 +4,70 @@
 /* 标准库头文件 */
 #include <stdio.h>
 #include <string.h>
-#include "inttypes.h"
+
 
 /* ESP-IDF 核心头文件 */
-#include "esp_err.h"
-#include "esp_log.h"
-#include "esp_system.h"
-#include "esp_compiler.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "freertos/event_groups.h"
 #include "esp_mac.h"
 #include "esp_wifi.h"
 #include "esp_event.h"
+#include "esp_log.h"
+#include "esp_netif_net_stack.h"
 #include "esp_netif.h"
-#include "esp_http_server.h"
 #include "nvs_flash.h"
-#include "freertos/task.h"
-
-/* LWIP 网络库头文件 */
+#include "lwip/inet.h"
+#include "lwip/netdb.h"
+#include "lwip/sockets.h"
+#include "lwip/lwip_napt.h"
 #include "lwip/err.h"
 #include "lwip/sys.h"
+#include "esp_http_server.h"
 
 /* nvs管理 */
-#include "nvs_manager/wifi_nvs_manager.h"
-#include "nvs_manager/menu_nvs_manager.h"
+#include "nvs_manager/unified_nvs_manager.h"
 #include "spi_scanner/keymap_manager.h"
+
+#include "spi_keyboard_config.h" // 合并后的SPI和按键映射配置文件
+
+/* 全局NVS管理器声明 */
+extern unified_nvs_manager_t *g_unified_nvs_manager;
 
 /* 函数声明 */
 void wifi_task(void);
 
-/* 获取当前WiFi模式 */
+/* WiFi控制函数 */
+esp_err_t wifi_station_change(bool enable);
+esp_err_t wifi_clear_password(void);
+esp_err_t wifi_hotspot(void);
+
+/* WiFi状态查询函数 */
+bool wifi_is_connected(void);
 esp_err_t wifi_get_mode(wifi_mode_t *mode);
 
-/* 获取WiFi连接状态 */
-bool wifi_is_connected(void);
+/* NVS管理函数 */
+esp_err_t wifi_app_nvs_init(void);
 
-/* 获取AP模式下的SSID和密码 */
-esp_err_t wifi_get_ap_info(char *ssid, size_t ssid_len, char *password, size_t password_len);
 
-/* 切换WiFi开关 */
-esp_err_t wifi_toggle(bool enable);
+typedef struct {
+    httpd_handle_t server;                  //服务器句柄
+    
+    esp_netif_t *sta_netif;                 // STA网络接口
+    esp_netif_t *ap_netif;                  // AP网络接口
+    char client_ip[16];                     // 客户端IP地址
+    unified_nvs_manager_t *unified_nvs_manager; // 统一NVS管理器
+    TaskHandle_t wifi_task_handle;           // WiFi任务句柄
 
-/* 获取HTTP服务器端口号 */
-uint16_t wifi_get_http_port(void);
+    wifi_mode_t mode;              // WiFi模式
+    bool wifi_enable_state;         //wifi启动状态
+    uint32_t auto_shutdown_timer;   // 自动关闭计时器（秒）
 
-/* 清除保存的WiFi密码 */
-esp_err_t wifi_clear_password(void);
+    // 事件处理程序实例句柄
+    esp_event_handler_instance_t wifi_event_handler_instance;
+    esp_event_handler_instance_t ip_event_handler_instance;
+} wifi_state_t;
 
-/* 全局变量 - 用于存储客户端IP地址，供oled_menu_display.c访问 */
-extern char client_ip[16];
+extern wifi_state_t wifi_state;
 
 #endif /* MAIN_WIFI_APP_H_ */

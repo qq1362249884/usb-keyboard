@@ -1,6 +1,7 @@
 #include "joystick.h"
 
 
+
 //全局变量定义
 //static const char *TAG = "app_joystick";
 
@@ -109,6 +110,9 @@ static int median_filter(int channel_idx, int new_value) {
 
 
 // 获取摇杆方向和旋转状态
+// 用于跟踪最后摇杆方向的静态变量
+static joystick_direction_t last_joystick_direction = JOYSTICK_CENTER;
+
 joystick_state_t get_joystick_direction()
 {
     joystick_state_t state;
@@ -157,26 +161,31 @@ joystick_state_t get_joystick_direction()
     // 如果所有方向的距离都大于阈值，则返回中心位置
     if (distance_up > threshold && distance_down > threshold && distance_left > threshold && distance_right > threshold) {
         state.direction = JOYSTICK_CENTER;
-        return state;
+    } else {
+        // 找到距离最小的方向
+        int min_distance = distance_up;
+        state.direction = JOYSTICK_UP;
+        
+        if (distance_down < min_distance) {
+            min_distance = distance_down;
+            state.direction = JOYSTICK_DOWN;
+        }
+        
+        if (distance_left < min_distance) {
+            min_distance = distance_left;
+            state.direction = JOYSTICK_LEFT;
+        }
+        
+        if (distance_right < min_distance) {
+            min_distance = distance_right;
+            state.direction = JOYSTICK_RIGHT;
+        }
     }
     
-    // 找到距离最小的方向
-    int min_distance = distance_up;
-    state.direction = JOYSTICK_UP;
-    
-    if (distance_down < min_distance) {
-        min_distance = distance_down;
-        state.direction = JOYSTICK_DOWN;
-    }
-    
-    if (distance_left < min_distance) {
-        min_distance = distance_left;
-        state.direction = JOYSTICK_LEFT;
-    }
-    
-    if (distance_right < min_distance) {
-        min_distance = distance_right;
-        state.direction = JOYSTICK_RIGHT;
+    // 如果摇杆方向改变，更新最后活动时间以防止设备进入睡眠模式
+    if (state.direction != last_joystick_direction) {
+        update_last_activity_time();
+        last_joystick_direction = state.direction;
     }
     
     return state;
@@ -250,5 +259,15 @@ button_press_type_t detect_button_press() {
     button_press_type_t result = detected_press_type;
     detected_press_type = BUTTON_NONE; // 清除已检测到的按键类型
     return result;
+}
+
+/**
+ * @brief 更新最后活动时间，防止设备进入睡眠模式
+ * 这是一个空函数，用于防止编译错误，实际功能需要根据具体需求实现
+ */
+void update_last_activity_time() {
+    // 这里可以添加实际的最后活动时间更新逻辑
+    // 例如：更新一个全局的时间戳变量
+    // 目前先实现为空函数以通过编译
 }
 

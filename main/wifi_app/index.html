@@ -17,13 +17,56 @@
             --danger-color: #ef4444;
             --readonly-bg: #f3f4f6;
             --hover-bg: #f9fafb;
+            --shadow-color: rgba(0,0,0,0.1);
+            --input-bg: #ffffff;
+            --dropdown-bg: #ffffff;
+            --modal-bg: #ffffff;
+            --toast-bg: #ffffff;
+        }
+
+        /* 深色模式变量 */
+        [data-theme="dark"] {
+            --primary-color: #3b82f6;
+            --background-color: #0f172a;
+            --container-bg: #1e293b;
+            --text-color: #f1f5f9;
+            --border-color: #475569;
+            --secondary-bg: #334155;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --readonly-bg: #64748b;
+            --hover-bg: #475569;
+            --shadow-color: rgba(0,0,0,0.3);
+            --input-bg: #475569;
+            --dropdown-bg: #475569;
+            --modal-bg: #1e293b;
+            --toast-bg: #334155;
+        }
+
+        /* 自动深色模式检测 */
+        @media (prefers-color-scheme: dark) {
+            :root:not([data-theme="light"]) {
+                --primary-color: #3b82f6;
+                --background-color: #0f172a;
+                --container-bg: #1e293b;
+                --text-color: #f1f5f9;
+                --border-color: #475569;
+                --secondary-bg: #334155;
+                --success-color: #10b981;
+                --warning-color: #f59e0b;
+                --danger-color: #ef4444;
+                --readonly-bg: #64748b;
+                --hover-bg: #475569;
+                --shadow-color: rgba(0,0,0,0.3);
+                --input-bg: #475569;
+                --dropdown-bg: #475569;
+                --modal-bg: #1e293b;
+                --toast-bg: #334155;
+            }
         }
         
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+        *, *::before, *::after { box-sizing: border-box; }
         
         body {
             font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
@@ -43,34 +86,16 @@
             padding: 2rem;
             background-color: var(--container-bg);
             border-radius: 1rem;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 6px -1px var(--shadow-color), 0 2px 4px -2px var(--shadow-color);
             max-width: 600px;
             width: 100%;
             margin-bottom: 20px;
         }
         
-        h1 {
-            color: var(--primary-color);
-            margin-bottom: 1.5rem;
-            font-size: 1.75rem;
-            font-weight: 600;
-            user-select: none;
-        }
+        h1 { color: var(--primary-color); margin-bottom: 1.5rem; font-size: 1.75rem; font-weight: 600; user-select: none; }
+        h2 { color: var(--text-color); font-size: 1.25rem; margin: 1rem 0; font-weight: 500; }
+        p { color: #64748b; font-size: 1rem; margin-bottom: 1rem; }
         
-        h2 {
-            color: var(--text-color);
-            font-size: 1.25rem;
-            margin: 1rem 0;
-            font-weight: 500;
-        }
-        
-        p {
-            color: #64748b;
-            font-size: 1rem;
-            margin-bottom: 1rem;
-        }
-        
-        /* 标签页样式 */
         .tabs {
             display: flex;
             border-bottom: 2px solid var(--border-color);
@@ -115,17 +140,16 @@
             to { opacity: 1; transform: translateY(0); }
         }
         
-        /* 统一表单元素样式 */
         .form-element {
             width: 100%;
             padding: 0.75rem;
             margin: 0.5rem 0;
-            border: 1px solid #e5e7eb;
+            border: 1px solid var(--border-color);
             border-radius: 0.5rem;
             font-size: 1rem;
             font-family: inherit;
-            background-color: white;
-            color: #333;
+            background-color: var(--input-bg);
+            color: var(--text-color);
             line-height: 1.5;
             transition: border-color 0.3s ease, box-shadow 0.3s ease;
         }
@@ -136,7 +160,6 @@
             box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
         }
         
-        /* 自定义下拉菜单样式 */
         .custom-select {
             width: 100%;
             margin: 0.5rem 0;
@@ -146,13 +169,14 @@
         .select-selected {
             width: 100%;
             padding: 0.75rem;
-            border: 1px solid #e5e7eb;
+            margin: 0.5rem 0;
+            border: 1px solid var(--border-color);
             border-radius: 0.5rem;
-            background-color: white;
+            background-color: var(--input-bg);
             cursor: pointer;
             font-size: 1rem;
             font-family: inherit;
-            color: #333;
+            color: var(--text-color);
             line-height: 1.5;
             text-align: left;
             transition: border-color 0.3s ease, box-shadow 0.3s ease;
@@ -175,28 +199,114 @@
             left: 0;
             width: 100%;
             margin-top: 4px;
-            background: white;
-            border: 1px solid #e5e7eb;
+        }
+        
+        /* 状态提示样式 */
+        .status-message {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            z-index: 1000;
+            max-width: 300px;
+            box-shadow: 0 4px 12px var(--shadow-color);
+            animation: slideInRight 0.3s ease;
+            transition: all 0.3s ease;
+        }
+        
+        .status-message.success {
+            background-color: var(--success-color);
+            color: white;
+        }
+        
+        .status-message.warning {
+            background-color: var(--warning-color);
+            color: white;
+        }
+        
+        .status-message.error {
+            background-color: var(--danger-color);
+            color: white;
+        }
+        
+        .status-message.info {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes slideOutRight {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
+            background: var(--input-bg);
+            border: 1px solid var(--border-color);
             border-radius: 0.5rem;
             max-height: 200px;
             overflow-y: auto;
             display: none;
             z-index: 1000;
             box-sizing: border-box;
+            box-shadow: 0 4px 6px -1px var(--shadow-color);
         }
         
         .select-item {
-            padding: 0.75rem;
+            padding: 0.5rem 0.75rem;
             cursor: pointer;
             transition: background-color 0.2s ease;
             text-align: left;
+            color: var(--text-color);
+            background-color: var(--input-bg);
+            font-size: 0.9rem;
+            line-height: 1.5;
         }
         
         .select-item:hover {
-            background-color: #f0f0f0;
+            background-color: var(--hover-bg);
         }
         
-        /* 按钮样式 */
+        /* 深色模式下增强选择框对比度 */
+        [data-theme="dark"] .form-element {
+            border: 2px solid var(--border-color);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        [data-theme="dark"] .select-selected {
+            border: 2px solid var(--border-color);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        [data-theme="dark"] .select-items {
+            border: 2px solid var(--border-color);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+        }
+        
+        [data-theme="dark"] .form-element:focus,
+        [data-theme="dark"] .select-selected:focus,
+        [data-theme="dark"] .select-selected:hover {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2), 0 2px 4px rgba(0,0,0,0.3);
+        }
+        
         .btn {
             padding: 0.75rem 1.5rem;
             border: none;
@@ -211,169 +321,96 @@
             text-align: center;
         }
         
-        .btn-primary {
-            background-color: var(--primary-color);
-            color: white;
-        }
+        .btn-primary { background-color: var(--primary-color); color: white; }
+        .btn-primary:hover:not(:disabled) { background-color: #1d4ed8; transform: translateY(-1px); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
         
-        .btn-primary:hover:not(:disabled) {
-            background-color: #1d4ed8;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        }
+        .btn-secondary { background-color: #64748b; color: white; }
+        .btn-secondary:hover:not(:disabled) { background-color: #475569; }
         
-        .btn-secondary {
-            background-color: #64748b;
-            color: white;
-        }
+        .btn-success { background-color: var(--success-color); color: white; }
+        .btn-success:hover:not(:disabled) { background-color: #059669; }
         
-        .btn-secondary:hover:not(:disabled) {
-            background-color: #475569;
-        }
+        .btn-warning { background-color: var(--warning-color); color: white; }
+        .btn-warning:hover:not(:disabled) { background-color: #d97706; }
         
-        .btn-success {
-            background-color: var(--success-color);
-            color: white;
-        }
+        .btn-danger { background-color: var(--danger-color); color: white; }
+        .btn-danger:hover:not(:disabled) { background-color: #dc2626; }
         
-        .btn-success:hover:not(:disabled) {
-            background-color: #059669;
-        }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
         
-        .btn-warning {
-            background-color: var(--warning-color);
-            color: white;
-        }
+        .btn-group { display: flex; gap: 0.5rem; justify-content: center; margin: 1rem 0; flex-wrap: wrap; }
+        .btn-group .btn { flex: 1; min-width: 120px; }
         
-        .btn-warning:hover:not(:disabled) {
-            background-color: #d97706;
-        }
+        .wifi-section, .keymap-section { margin: 1.5rem 0; padding: 1.5rem; background-color: var(--secondary-bg); border-radius: 0.75rem; border: 1px solid var(--border-color); }
+        .wifi-section { user-select: none; }
+        .password-input { margin: 0.5rem 0; }
         
-        .btn-danger {
-            background-color: var(--danger-color);
-            color: white;
-        }
+        .keymap-tabs { display: flex; border-bottom: 2px solid var(--border-color); margin-bottom: 1rem; }
+        .keymap-tab { padding: 0.5rem 1rem; cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.3s ease; font-weight: 500; color: #64748b; font-size: 0.9rem; }
+        .keymap-tab.active { border-bottom-color: var(--primary-color); color: var(--primary-color); background-color: var(--hover-bg); }
         
-        .btn-danger:hover:not(:disabled) {
-            background-color: #dc2626;
-        }
+        .keymap-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; margin: 1rem 0; }
         
-        .btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
+        .mode-switch { display: flex; justify-content: center; margin: 1rem 0; gap: 0.5rem; }
+        .mode-btn { padding: 0.5rem 1rem; border: 2px solid var(--border-color); border-radius: 0.5rem; background-color: white; color: var(--text-color); cursor: pointer; font-weight: 500; transition: all 0.3s ease; }
+        .mode-btn:hover { border-color: var(--primary-color); background-color: var(--hover-bg); }
+        .mode-btn.active { border-color: var(--primary-color); background-color: var(--primary-color); color: white; }
         
-        .btn-group {
-            display: flex;
-            gap: 0.5rem;
-            justify-content: center;
-            margin: 1rem 0;
-            flex-wrap: wrap;
-        }
-        
-        .btn-group .btn {
-            flex: 1;
-            min-width: 120px;
-        }
-        
-        /* WiFi部分样式 */
-        .wifi-section {
-            margin: 1.5rem 0;
-            padding: 1.5rem;
-            background-color: var(--secondary-bg);
-            border-radius: 0.75rem;
-            border: 1px solid var(--border-color);
-            user-select: none;
-        }
-        
-        .password-input {
-            margin: 0.5rem 0;
-        }
-        
-        /* 键盘映射部分样式 */
-        .keymap-section {
-            margin: 1.5rem 0;
-            padding: 1.5rem;
-            background-color: var(--secondary-bg);
-            border-radius: 0.75rem;
-            border: 1px solid var(--border-color);
-        }
-        
-        .keymap-tabs {
-            display: flex;
-            border-bottom: 2px solid var(--border-color);
-            margin-bottom: 1rem;
-        }
-        
-        .keymap-tab {
-            padding: 0.5rem 1rem;
-            cursor: pointer;
-            border-bottom: 3px solid transparent;
+        .key-item { 
+            background-color: var(--container-bg); 
+            border: 1px solid var(--border-color); 
+            border-radius: 0.5rem; 
+            padding: 10px; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
             transition: all 0.3s ease;
-            font-weight: 500;
-            color: #64748b;
-            font-size: 0.9rem;
+            color: var(--text-color);
         }
+        .key-item:hover { border-color: var(--primary-color); box-shadow: 0 2px 4px var(--shadow-color); }
         
-        .keymap-tab.active {
-            border-bottom-color: var(--primary-color);
-            color: var(--primary-color);
-            background-color: var(--hover-bg);
-        }
-        
-        .keymap-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-            gap: 10px;
-            margin: 1rem 0;
-        }
-        
-        .key-item {
-            background-color: white;
-            border: 1px solid var(--border-color);
-            border-radius: 0.5rem;
-            padding: 10px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            transition: all 0.3s ease;
-        }
-        
-        .key-item:hover {
-            border-color: var(--primary-color);
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-        }
-        
-        .key-number {
-            font-size: 0.8rem;
-            color: #64748b;
-            margin-bottom: 5px;
-        }
-        
-        .key-value {
-            font-size: 1rem;
-            font-weight: 500;
+        /* 确保按键项内的所有文字都使用正确的颜色 */
+        .key-item * {
             color: var(--text-color);
         }
         
-        .key-select {
-            width: 100%;
-            padding: 5px;
-            margin-top: 5px;
-            border: 1px solid #e5e7eb;
+        .key-number { font-size: 0.8rem; color: var(--text-color); opacity: 0.7; margin-bottom: 5px; }
+        .key-value { font-size: 1rem; font-weight: 500; color: var(--text-color); }
+        .key-select { width: 100%; padding: 5px; margin-top: 5px; border: 1px solid var(--border-color); border-radius: 0.375rem; font-size: 0.9rem; background-color: var(--input-bg); color: var(--text-color); }
+        
+        .readonly { background-color: var(--readonly-bg); cursor: not-allowed; }
+        .readonly .key-select { background-color: var(--readonly-bg); cursor: not-allowed; }
+        
+        .combo-editor h3 {
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+        
+        .combo-editor label {
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+        
+        .combo-editor input[type="checkbox"] {
+            margin-right: 0.25rem;
+        }
+        
+        .combo-editor select {
+            border: 1px solid var(--border-color);
             border-radius: 0.375rem;
             font-size: 0.9rem;
         }
         
-        .readonly {
-            background-color: var(--readonly-bg);
-            cursor: not-allowed;
+        .combo-editor button {
+            cursor: pointer;
+            transition: all 0.3s ease;
         }
         
-        .readonly .key-select {
-            background-color: var(--readonly-bg);
-            cursor: not-allowed;
+        .combo-editor button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
         
         .keymap-status {
@@ -401,6 +438,347 @@
             color: var(--warning-color);
         }
         
+        /* 现代化提示框样式 */
+        .toast-container {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            z-index: 10000;
+            max-width: 300px;
+        }
+        
+        .toast {
+            background: var(--toast-bg);
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 10px;
+            box-shadow: 0 4px 12px var(--shadow-color);
+            border-left: 4px solid var(--primary-color);
+            transform: translateX(100%);
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            max-height: 0;
+            overflow: hidden;
+        }
+        
+        .toast.show {
+            transform: translateX(0);
+            opacity: 1;
+            max-height: 200px;
+        }
+        
+        .toast.hide {
+            transform: translateX(100%);
+            opacity: 0;
+            max-height: 0;
+            margin-bottom: 0;
+            padding-top: 0;
+            padding-bottom: 0;
+        }
+        
+        .toast-success {
+            border-left-color: var(--success-color);
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.05), rgba(16, 185, 129, 0.02));
+        }
+        
+        .toast-error {
+            border-left-color: var(--danger-color);
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.05), rgba(239, 68, 68, 0.02));
+        }
+        
+        .toast-warning {
+            border-left-color: var(--warning-color);
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.05), rgba(245, 158, 11, 0.02));
+        }
+        
+        .toast-content {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .toast-icon {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+        
+        .toast-success .toast-icon {
+            background: var(--success-color);
+            color: white;
+        }
+        
+        .toast-error .toast-icon {
+            background: var(--danger-color);
+            color: white;
+        }
+        
+        .toast-warning .toast-icon {
+            background: var(--warning-color);
+            color: white;
+        }
+        
+        .toast-message {
+            flex: 1;
+            font-size: 14px;
+            line-height: 1.4;
+            color: var(--text-color);
+        }
+        
+        .toast-close {
+            background: none;
+            border: none;
+            font-size: 16px;
+            color: var(--border-color);
+            cursor: pointer;
+            padding: 0;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+        
+        .toast-close:hover {
+            background: var(--hover-bg);
+            color: var(--text-color);
+        }
+        
+        /* 层名称编辑对话框样式 */
+        .layer-name-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 10001;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .layer-name-modal.show {
+            display: flex;
+        }
+        
+        .layer-name-content {
+            background: var(--modal-bg);
+            border-radius: 12px;
+            padding: 24px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 20px 25px -5px var(--shadow-color), 0 10px 10px -5px var(--shadow-color);
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .layer-name-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .layer-name-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-color);
+            margin: 0;
+        }
+        
+        .layer-name-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: var(--text-color);
+            cursor: pointer;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+        
+        .layer-name-close:hover {
+            background-color: var(--hover-bg);
+            color: var(--text-color);
+        }
+        
+        .layer-name-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 16px;
+            padding: 12px;
+            background-color: var(--secondary-bg);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+        
+        .layer-name-label {
+            min-width: 80px;
+            font-weight: 500;
+            color: var(--text-color);
+            margin-right: 12px;
+        }
+        
+        .layer-name-input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 14px;
+            transition: all 0.2s;
+            background-color: var(--input-bg);
+            color: var(--text-color);
+        }
+        
+        .layer-name-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        .layer-name-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-top: 24px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border-color);
+        }
+        
+        .layer-name-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .layer-name-cancel {
+            background-color: #f3f4f6;
+            color: #374151;
+        }
+        
+        .layer-name-cancel:hover {
+            background-color: #e5e7eb;
+        }
+        
+        .layer-name-save {
+            background-color: #10b981;
+            color: white;
+        }
+        
+        .layer-name-save:hover {
+            background-color: #059669;
+        }
+        
+        /* 主题切换按钮样式 */
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: var(--container-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 50px;
+            padding: 8px 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-color);
+            box-shadow: 0 2px 8px var(--shadow-color);
+        }
+        
+        .theme-toggle:hover {
+            border-color: var(--primary-color);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px var(--shadow-color);
+        }
+        
+        .theme-icon {
+            font-size: 16px;
+            transition: transform 0.3s ease;
+        }
+        
+        .theme-toggle:hover .theme-icon {
+            transform: rotate(180deg);
+        }
+
+        /* WiFi下拉框样式 */
+        .custom-select {
+            position: relative;
+            width: 100%;
+            margin-bottom: 15px;
+        }
+        
+        .select-selected {
+            background-color: var(--input-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 10px 12px;
+            cursor: pointer;
+            font-size: 14px;
+            color: var(--text-color);
+            transition: all 0.2s;
+        }
+        
+        .select-selected:hover {
+            border-color: var(--primary-color);
+        }
+        
+        .select-items {
+            position: absolute;
+            background-color: var(--input-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            z-index: 99;
+            top: 100%;
+            left: 0;
+            right: 0;
+            max-height: 200px;
+            overflow-y: auto;
+            display: none; /* 初始隐藏 */
+            box-shadow: 0 4px 12px var(--shadow-color);
+        }
+        
+        .select-item {
+            padding: 10px 12px;
+            cursor: pointer;
+            font-size: 14px;
+            color: var(--text-color);
+            border-bottom: 1px solid var(--border-color);
+            transition: background-color 0.2s;
+        }
+        
+        .select-item:hover {
+            background-color: var(--hover-bg);
+        }
+        
+        .select-item:last-child {
+            border-bottom: none;
+        }
+
         /* 响应式设计 */
         @media (max-width: 480px) {
             body {
@@ -418,10 +796,45 @@
             .keymap-grid {
                 grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
             }
+            
+            .layer-name-content {
+                width: 95%;
+                padding: 16px;
+            }
+            
+            .layer-name-item {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .layer-name-label {
+                min-width: auto;
+                margin-right: 0;
+                margin-bottom: 8px;
+            }
+            
+            .theme-toggle {
+                top: 10px;
+                right: 10px;
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+            
+            .toast-container {
+                top: 60px;
+                right: 10px;
+                max-width: 250px;
+            }
         }
     </style>
 </head>
 <body>
+    <!-- 主题切换按钮 -->
+    <div class="theme-toggle" onclick="toggleTheme()" title="切换主题">
+        <span class="theme-icon">🌓</span>
+        <span class="theme-text">主题</span>
+    </div>
+    
     <div class="container">
         <h1>ESP32设备配置</h1>
         <p>当前的IP：<span id="currentIP"></span></p>
@@ -461,7 +874,40 @@
                 <!-- 键盘映射标签页 -->
                 <div class="keymap-tabs">
                     <div class="keymap-tab active" onclick="switchKeymapTab('default')">默认映射（只读）</div>
-                    <div class="keymap-tab" onclick="switchKeymapTab('custom')">自定义映射（可编辑）</div>
+                    <!-- 自定义层选择下拉框 -->
+                <div class="custom-select" style="display: inline-block; margin-left: 10px;">
+                    <div id="customLayerDropdown" class="select-selected">
+                        选择自定义层
+                    </div>
+                    <div id="customLayerOptions" class="select-items">
+                        <div class="select-item" data-value="custom1" onclick="selectCustomLayer(this)">自定义层1</div>
+                        <div class="select-item" data-value="custom2" onclick="selectCustomLayer(this)">自定义层2</div>
+                        <div class="select-item" data-value="custom3" onclick="selectCustomLayer(this)">自定义层3</div>
+                        <div class="select-item" data-value="custom4" onclick="selectCustomLayer(this)">自定义层4</div>
+                        <div class="select-item" data-value="custom5" onclick="selectCustomLayer(this)">自定义层5</div>
+                        <div class="select-item" data-value="custom6" onclick="selectCustomLayer(this)">自定义层6</div>
+                        <div class="select-item" onclick="editLayerNames()" style="border-top: 1px solid var(--border-color); background-color: var(--secondary-bg); font-weight: 500;">
+                            ✏️ 编辑层名称
+                        </div>
+                    </div>
+                </div>
+                </div>
+                
+                <!-- 按键分组下拉菜单 -->
+                <div class="key-group-selector" style="margin: 10px 0;">
+                    <label for="keyGroupSelect" style="font-weight: 500; margin-right: 8px;">按键分组：</label>
+                    <select id="keyGroupSelect" class="form-element" onchange="filterKeysByGroup()" style="width: 200px;">
+                        <option value="全部按键">全部按键</option>
+                        <option value="字母键">字母键</option>
+                        <option value="数字键">数字键</option>
+                        <option value="功能键">功能键</option>
+                        <option value="方向键">方向键</option>
+                        <option value="控制键">控制键</option>
+                        <option value="特殊键">特殊键</option>
+                        <option value="多媒体键">多媒体键</option>
+                        <option value="其他键">其他键</option>
+                        <option value="组合键">组合键</option>
+                    </select>
                 </div>
                 
                 <!-- 状态消息 -->
@@ -470,25 +916,76 @@
                 <!-- 默认键盘映射 -->
                 <div id="default-keymap" class="keymap-content active">
                     <div class="keymap-grid" id="defaultKeymapGrid"></div>
-                    <p>以上是默认的按键映射配置，无法修改。您可以在自定义映射标签中创建自己的按键配置。</p>
+                    <p>以上是默认的按键映射配置，无法修改。您可以在自定义层标签中创建自己的按键配置。</p>
                 </div>
                 
-                <!-- 自定义键盘映射 -->
-                <div id="custom-keymap" class="keymap-content">
-                    <div class="keymap-grid" id="customKeymapGrid"></div>
-                    <div class="btn-group">
-                        <button id="loadKeymapBtn" class="btn btn-secondary" onclick="loadCustomKeymap()">加载配置</button>
-                        <button id="saveKeymapBtn" class="btn btn-primary" onclick="saveCustomKeymap()">保存配置</button>
-                        <button id="resetKeymapBtn" class="btn btn-warning" onclick="resetCustomKeymap()">重置为空</button>
-                    </div>
-                </div>
+                <div id="custom1-keymap" class="keymap-content"><div class="keymap-grid" id="customKeymapGrid1"></div><div class="btn-group"><button id="loadKeymapBtn1" class="btn btn-secondary" onclick="loadCustomKeymap(1)">加载配置</button><button id="saveKeymapBtn1" class="btn btn-primary" onclick="saveCustomKeymap(1)">保存配置</button><button id="resetKeymapBtn1" class="btn btn-warning" onclick="resetCustomKeymap(1)">重置为空</button></div></div>
+                 <div id="custom2-keymap" class="keymap-content"><div class="keymap-grid" id="customKeymapGrid2"></div><div class="btn-group"><button id="loadKeymapBtn2" class="btn btn-secondary" onclick="loadCustomKeymap(2)">加载配置</button><button id="saveKeymapBtn2" class="btn btn-primary" onclick="saveCustomKeymap(2)">保存配置</button><button id="resetKeymapBtn2" class="btn btn-warning" onclick="resetCustomKeymap(2)">重置为空</button></div></div>
+                 <div id="custom3-keymap" class="keymap-content"><div class="keymap-grid" id="customKeymapGrid3"></div><div class="btn-group"><button id="loadKeymapBtn3" class="btn btn-secondary" onclick="loadCustomKeymap(3)">加载配置</button><button id="saveKeymapBtn3" class="btn btn-primary" onclick="saveCustomKeymap(3)">保存配置</button><button id="resetKeymapBtn3" class="btn btn-warning" onclick="resetCustomKeymap(3)">重置为空</button></div></div>
+                 <div id="custom4-keymap" class="keymap-content"><div class="keymap-grid" id="customKeymapGrid4"></div><div class="btn-group"><button id="loadKeymapBtn4" class="btn btn-secondary" onclick="loadCustomKeymap(4)">加载配置</button><button id="saveKeymapBtn4" class="btn btn-primary" onclick="saveCustomKeymap(4)">保存配置</button><button id="resetKeymapBtn4" class="btn btn-warning" onclick="resetCustomKeymap(4)">重置为空</button></div></div>
+                 <div id="custom5-keymap" class="keymap-content"><div class="keymap-grid" id="customKeymapGrid5"></div><div class="btn-group"><button id="loadKeymapBtn5" class="btn btn-secondary" onclick="loadCustomKeymap(5)">加载配置</button><button id="saveKeymapBtn5" class="btn btn-primary" onclick="saveCustomKeymap(5)">保存配置</button><button id="resetKeymapBtn5" class="btn btn-warning" onclick="resetCustomKeymap(5)">重置为空</button></div></div>
+                 <div id="custom6-keymap" class="keymap-content"><div class="keymap-grid" id="customKeymapGrid6"></div><div class="btn-group"><button id="loadKeymapBtn6" class="btn btn-secondary" onclick="loadCustomKeymap(6)">加载配置</button><button id="saveKeymapBtn6" class="btn btn-primary" onclick="saveCustomKeymap(6)">保存配置</button><button id="resetKeymapBtn6" class="btn btn-warning" onclick="resetCustomKeymap(6)">重置为空</button></div></div>
             </div>
         </div>
         
         <p>当前时间：<span id="currentTime"></span></p>
     </div>
     
+    <!-- 层名称编辑对话框 -->
+    <div id="layerNameModal" class="layer-name-modal">
+        <div class="layer-name-content">
+            <div class="layer-name-header">
+                <h3 class="layer-name-title">编辑自定义层名称</h3>
+                <button class="layer-name-close" onclick="closeLayerNameModal()">×</button>
+            </div>
+            
+            <div id="layerNameItems">
+                <!-- 层名称输入项将在这里动态生成 -->
+            </div>
+            
+            <div class="layer-name-info">
+                <p style="font-size: 12px; color: #666; margin: 10px 0; padding: 8px; background-color: #f8f9fa; border-radius: 4px;">
+                    💡 提示：保存的层名称存储在浏览器缓存中，清理浏览器缓存后名称将恢复为默认值。
+                </p>
+            </div>
+            
+            <div class="layer-name-actions">
+                <button class="layer-name-btn layer-name-cancel" onclick="closeLayerNameModal()">取消</button>
+                <button class="layer-name-btn layer-name-save" onclick="saveLayerNames()">保存</button>
+            </div>
+        </div>
+    </div>
+    
     <script>
+        // 全局变量：按键数量（默认为0，等待从后端获取）
+        let numKeys = 0;
+        
+        // 获取按键数量配置
+        async function fetchNumKeys() {
+            try {
+                // 实际调用后端API获取按键数量
+                const response = await fetch('/get-num-keys');
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.status === 'success') {
+                        numKeys = data.numKeys;
+                        console.log('从后端获取按键数量:', numKeys);
+                    } else {
+                        throw new Error(data.message || '获取按键数量失败');
+                    }
+                } else {
+                    throw new Error('HTTP错误: ' + response.status);
+                }
+            } catch (error) {
+                // 如果后端API调用失败，使用默认值17
+                console.log('获取按键数量失败，使用默认值17:', error);
+                numKeys = 17;
+            }
+            
+            // 设置全局变量
+            window.numKeys = numKeys;
+        }
+        
         // 主标签页切换
         function switchTab(tabName) {
             // 隐藏所有内容
@@ -506,51 +1003,91 @@
             // 添加active类到选中的标签
             document.querySelector('.tab[onclick="switchTab(\'' + tabName + '\')"]').classList.add('active');
             
-            // 如果切换到键盘映射标签，加载默认映射
+            // 如果切换到键盘映射标签，加载默认映射并隐藏按键分组
             if (tabName === 'keymap') {
                 loadDefaultKeymap();
+                // 隐藏按键分组下拉菜单
+                const keyGroupSelector = document.querySelector('.key-group-selector');
+                if (keyGroupSelector) {
+                    keyGroupSelector.style.display = 'none';
+                }
             }
         }
         
         // 键盘映射标签页切换
         function switchKeymapTab(tabName) {
-            // 隐藏所有映射内容
-            document.getElementById('default-keymap').classList.remove('active');
-            document.getElementById('custom-keymap').classList.remove('active');
+            // 安全地移除active类
+            const defaultKeymap = document.getElementById('default-keymap');
+            if (defaultKeymap) defaultKeymap.classList.remove('active');
             
-            // 移除所有标签的active类
-            document.querySelectorAll('.keymap-tab').forEach(tab => {
-                tab.classList.remove('active');
+            [1,2,3,4,5,6].forEach(i => {
+                const customKeymap = document.getElementById('custom' + i + '-keymap');
+                if (customKeymap) customKeymap.classList.remove('active');
             });
             
-            // 显示选中的内容
-            document.getElementById(tabName + '-keymap').classList.add('active');
+            document.querySelectorAll('.keymap-tab').forEach(tab => tab.classList.remove('active'));
             
-            // 添加active类到选中的标签
-            document.querySelector('.keymap-tab[onclick="switchKeymapTab(\'' + tabName + '\')"]').classList.add('active');
+            // 安全地添加active类
+            const targetKeymap = document.getElementById(tabName + '-keymap');
+            if (targetKeymap) targetKeymap.classList.add('active');
+            
+            const targetTab = document.querySelector('.keymap-tab[onclick="switchKeymapTab(\'' + tabName + '\')"]');
+            if (targetTab) targetTab.classList.add('active');
+            
+            // 控制按键分组下拉菜单的显示/隐藏
+            const keyGroupSelector = document.querySelector('.key-group-selector');
+            if (keyGroupSelector) {
+                if (tabName === 'default') {
+                    keyGroupSelector.style.display = 'none';
+                } else {
+                    keyGroupSelector.style.display = 'block';
+                }
+            }
+            
+            if (tabName.startsWith('custom')) loadCustomKeymap(parseInt(tabName.replace('custom', '')));
         }
         
-        // 显示状态消息
+        function selectCustomLayer(element) {
+            const value = element.getAttribute('data-value');
+            const displayName = getLayerDisplayName(value);
+            document.getElementById('customLayerDropdown').textContent = displayName;
+            document.getElementById('customLayerOptions').style.display = 'none';
+            
+            switchKeymapTab(value);
+        }
+        
         function showStatus(message, type = 'success') {
             const statusElement = document.getElementById('keymapStatus');
             statusElement.textContent = message;
             
-            // 移除所有状态类
             statusElement.classList.remove('status-success', 'status-error', 'status-warning');
             
-            // 添加相应的状态类
             statusElement.classList.add('status-' + type);
             
-            // 显示状态元素
             statusElement.style.display = 'block';
             
-            // 3秒后隐藏
             setTimeout(() => {
                 statusElement.style.display = 'none';
             }, 3000);
         }
         
-        // 键码映射表（从keycodes.h提取的常用键码）
+        const KEY_COMBO_FLAG = 0x7000;
+        const KEY_MODIFIER_MASK = 0x0F00;
+        const KEY_BASE_MASK = 0x00FF;
+                
+        const MOD_LCTRL = 0x0100;
+        const MOD_LSHIFT = 0x0200;
+        const MOD_LALT = 0x0400;
+        const MOD_LGUI = 0x0800;
+
+        const modifierNames = {
+            [MOD_LCTRL]: 'Ctrl',
+            [MOD_LSHIFT]: 'Shift',
+            [MOD_LALT]: 'Alt',
+            [MOD_LGUI]: 'Win'
+
+        };
+        
         const keyCodeMap = {
             0x0000: 'KC_NO',
             0x0001: 'KC_TRANSPARENT',
@@ -646,41 +1183,231 @@
             0x0060: 'KC_KP_8',
             0x0061: 'KC_KP_9',
             0x0062: 'KC_KP_0',
-            0x0063: 'KC_KP_DOT'
+            0x0063: 'KC_KP_DOT',
+            0x0100: 'KC_LCTRL',
+            0x0200: 'KC_LSHIFT',
+            0x0400: 'KC_LALT',
+            0x0800: 'KC_LGUI'
         };
         
-        // 获取键码的可读名称
-        function getKeyName(code) {
-            return keyCodeMap[code] || `未知(0x${code.toString(16).toUpperCase().padStart(4, '0')})`;
+        function isComboKey(code) {
+            const isCombo = (code & KEY_COMBO_FLAG) === KEY_COMBO_FLAG;
+            return isCombo;
         }
         
-        // 获取所有键码选项的HTML
-        function getKeyOptions(selectedCode = 0) {
-            let options = '';
-            // 添加空白选项
-            options += `<option value="0" ${selectedCode === 0 ? 'selected' : ''}>空（无功能）</option>`;
+        function getBaseKey(code) {
+            return code & KEY_BASE_MASK;
+        }
+        
+        function getModifierMask(code) {
+            const modifierMask = code & KEY_MODIFIER_MASK;
+            return modifierMask;
+        }
+        
+        function createComboKey(baseKey, modifierMask) {
+            const comboKey = KEY_COMBO_FLAG | modifierMask | (baseKey & KEY_BASE_MASK);
+            return comboKey;
+        }
+        
+        function getModifierNames(modifierMask) {
+            const modifiers = [];
             
-            // 添加所有键码选项，按值排序
-            Object.keys(keyCodeMap)
-                .map(Number)
-                .sort((a, b) => a - b)
-                .forEach(code => {
+            for (const [mask, name] of Object.entries(modifierNames)) {
+                const maskValue = parseInt(mask);
+                const hasModifier = (modifierMask & maskValue) !== 0;
+                
+                if (hasModifier) {
+                    modifiers.push(name);
+                }
+            }
+            
+            return modifiers;
+        }
+        
+        function getKeyName(code) {
+            if (isComboKey(code)) {
+                const baseKey = getBaseKey(code);
+                const modifierMask = getModifierMask(code);
+                const modifiers = getModifierNames(modifierMask);
+                const baseName = keyCodeMap[baseKey] || `未知(0x${baseKey.toString(16).toUpperCase().padStart(4, '0')})`;
+                
+                if (modifiers.length > 0) {
+                    return `${modifiers.join('+')}+${baseName}`;
+                } else {
+                    return baseName;
+                }
+            } else {
+                return keyCodeMap[code] || `未知(0x${code.toString(16).toUpperCase().padStart(4, '0')})`;
+            }
+        }
+        
+        function getNormalKeyOptions(selectedCode = 0) {
+            let options = `<option value="0" ${selectedCode === 0 ? 'selected' : ''}>空（无功能）</option>`;
+            Object.keys(keyCodeMap).map(Number).sort((a, b) => a - b).forEach(code => {
+                if (!isComboKey(code)) {
                     options += `<option value="${code}" ${selectedCode === code ? 'selected' : ''}>${getKeyName(code)}</option>`;
+                }
+            });
+            return options;
+        }
+        
+        function getComboKeyOptions(selectedCode = 0) {
+            const isCustomSelected = selectedCode === 'custom';
+            const numericSelectedCode = isCustomSelected ? 0 : selectedCode;
+            let options = `<option value="0" ${numericSelectedCode === 0 ? 'selected' : ''}>空（无功能）</option>`;
+            const commonCombos = [0x0004,0x0006,0x0007,0x0010,0x0016,0x0017,0x0018,0x001A,0x001B,0x001C,0x001D,0x003A,0x003B,0x003C,0x003D,0x003E,0x003F,0x0040,0x0041,0x0042,0x0043,0x0044,0x0045].flatMap(key => [
+                createComboKey(key, MOD_LCTRL), createComboKey(key, MOD_LALT), createComboKey(key, MOD_LSHIFT), createComboKey(key, MOD_LGUI),
+                createComboKey(key, MOD_LCTRL | MOD_LSHIFT), createComboKey(key, MOD_LCTRL | MOD_LALT)
+            ]);
+            commonCombos.forEach(comboKey => {
+                options += `<option value="${comboKey}" ${numericSelectedCode === comboKey ? 'selected' : ''}>${getKeyName(comboKey)}</option>`;
+            });
+            options += `<option value="custom" ${isCustomSelected ? 'selected' : ''}>自定义组合键...</option>`;
+            if (numericSelectedCode !== 0 && !isCustomSelected && !isComboKey(numericSelectedCode)) {
+                options += `<option value="${numericSelectedCode}" selected>${getKeyName(numericSelectedCode)}</option>`;
+            }
+            return options;
+        }
+        
+        // 合并普通键和组合键的选项，并根据当前分组过滤
+        function getMergedKeyOptions(selectedCode = 0) {
+            const isCustomSelected = selectedCode === 'custom';
+            const numericSelectedCode = isCustomSelected ? 0 : selectedCode;
+            let options = `<option value="0" ${numericSelectedCode === 0 ? 'selected' : ''}>空（无功能）</option>`;
+            
+            // 获取当前选中的分组
+            const groupSelect = document.getElementById('keyGroupSelect');
+            const selectedGroup = groupSelect ? groupSelect.value : '全部按键';
+            
+            // 普通键分组
+            const normalKeys = Object.keys(keyCodeMap).map(Number).sort((a, b) => a - b).filter(code => !isComboKey(code));
+            
+            // 组合键分组
+            const commonCombos = [0x0004,0x0006,0x0007,0x0010,0x0016,0x0017,0x0018,0x001A,0x001B,0x001C,0x001D,0x003A,0x003B,0x003C,0x003D,0x003E,0x003F,0x0040,0x0041,0x0042,0x0043,0x0044,0x0045].flatMap(key => [
+                createComboKey(key, MOD_LCTRL), createComboKey(key, MOD_LALT), createComboKey(key, MOD_LSHIFT), createComboKey(key, MOD_LGUI),
+                createComboKey(key, MOD_LCTRL | MOD_LSHIFT), createComboKey(key, MOD_LCTRL | MOD_LALT)
+            ]);
+            
+            // 根据当前选中的分组过滤选项
+            if (selectedGroup === '全部按键' || selectedGroup === '普通键') {
+                // 添加普通键选项（按分组）
+                options += '<optgroup label="普通键">';
+                normalKeys.forEach(code => {
+                    if (selectedGroup === '全部按键' || getKeyGroup(code) === selectedGroup) {
+                        options += `<option value="${code}" ${numericSelectedCode === code ? 'selected' : ''}>${getKeyName(code)}</option>`;
+                    }
                 });
+                options += '</optgroup>';
+            }
+            
+            if (selectedGroup === '全部按键' || selectedGroup === '组合键') {
+                // 添加组合键选项（按修饰键分组）
+                options += '<optgroup label="Ctrl组合键">';
+                commonCombos.filter(comboKey => (getModifierMask(comboKey) & MOD_LCTRL) && !(getModifierMask(comboKey) & MOD_LSHIFT) && !(getModifierMask(comboKey) & MOD_LALT) && !(getModifierMask(comboKey) & MOD_LGUI)).forEach(comboKey => {
+                    options += `<option value="${comboKey}" ${numericSelectedCode === comboKey ? 'selected' : ''}>${getKeyName(comboKey)}</option>`;
+                });
+                options += '</optgroup>';
+                
+                options += '<optgroup label="Shift组合键">';
+                commonCombos.filter(comboKey => (getModifierMask(comboKey) & MOD_LSHIFT) && !(getModifierMask(comboKey) & MOD_LCTRL) && !(getModifierMask(comboKey) & MOD_LALT) && !(getModifierMask(comboKey) & MOD_LGUI)).forEach(comboKey => {
+                    options += `<option value="${comboKey}" ${numericSelectedCode === comboKey ? 'selected' : ''}>${getKeyName(comboKey)}</option>`;
+                });
+                options += '</optgroup>';
+                
+                options += '<optgroup label="Alt组合键">';
+                commonCombos.filter(comboKey => (getModifierMask(comboKey) & MOD_LALT) && !(getModifierMask(comboKey) & MOD_LCTRL) && !(getModifierMask(comboKey) & MOD_LSHIFT) && !(getModifierMask(comboKey) & MOD_LGUI)).forEach(comboKey => {
+                    options += `<option value="${comboKey}" ${numericSelectedCode === comboKey ? 'selected' : ''}>${getKeyName(comboKey)}</option>`;
+                });
+                options += '</optgroup>';
+                
+                options += '<optgroup label="Win组合键">';
+                commonCombos.filter(comboKey => (getModifierMask(comboKey) & MOD_LGUI) && !(getModifierMask(comboKey) & MOD_LCTRL) && !(getModifierMask(comboKey) & MOD_LSHIFT) && !(getModifierMask(comboKey) & MOD_LALT)).forEach(comboKey => {
+                    options += `<option value="${comboKey}" ${numericSelectedCode === comboKey ? 'selected' : ''}>${getKeyName(comboKey)}</option>`;
+                });
+                options += '</optgroup>';
+                
+                options += '<optgroup label="多修饰键组合">';
+                commonCombos.filter(comboKey => {
+                    const mask = getModifierMask(comboKey);
+                    return (mask & MOD_LCTRL && mask & MOD_LSHIFT) || (mask & MOD_LCTRL && mask & MOD_LALT);
+                }).forEach(comboKey => {
+                    options += `<option value="${comboKey}" ${numericSelectedCode === comboKey ? 'selected' : ''}>${getKeyName(comboKey)}</option>`;
+                });
+                options += '</optgroup>';
+            }
+            
+            // 对于特定分组（字母键、数字键、功能键等），只显示属于该分组的按键
+            if (selectedGroup !== '全部按键' && selectedGroup !== '普通键' && selectedGroup !== '组合键') {
+                options += '<optgroup label="' + selectedGroup + '">';
+                
+                // 普通键中属于当前分组的按键
+                normalKeys.forEach(code => {
+                    if (getKeyGroup(code) === selectedGroup) {
+                        options += `<option value="${code}" ${numericSelectedCode === code ? 'selected' : ''}>${getKeyName(code)}</option>`;
+                    }
+                });
+                
+                // 组合键中属于当前分组的按键
+                commonCombos.forEach(comboKey => {
+                    if (getKeyGroup(comboKey) === selectedGroup) {
+                        options += `<option value="${comboKey}" ${numericSelectedCode === comboKey ? 'selected' : ''}>${getKeyName(comboKey)}</option>`;
+                    }
+                });
+                
+                options += '</optgroup>';
+            }
+            
+            // 添加自定义组合键选项（只在组合键分组中显示）
+            if (selectedGroup === '全部按键' || selectedGroup === '组合键') {
+                options += `<option value="custom" ${isCustomSelected ? 'selected' : ''}>自定义组合键...</option>`;
+            }
+            
+            // 在所有分组中，总是显示当前选中值的临时值选项（放在空选项下面）
+            if (numericSelectedCode !== 0 && !isCustomSelected) {
+                // 在空选项后面插入临时值选项
+                const emptyOption = `<option value="0" ${numericSelectedCode === 0 ? 'selected' : ''}>空（无功能）</option>`;
+                const tempOption = `<option value="${numericSelectedCode}" selected>${getKeyName(numericSelectedCode)}</option>`;
+                
+                // 使用更精确的替换方法，确保只替换空选项
+                const emptyOptionIndex = options.indexOf(emptyOption);
+                if (emptyOptionIndex !== -1) {
+                    // 在空选项后面插入临时值选项
+                    options = options.substring(0, emptyOptionIndex + emptyOption.length) + 
+                             tempOption + 
+                             options.substring(emptyOptionIndex + emptyOption.length);
+                }
+            }
             
             return options;
         }
         
-        // 默认按键映射（从keymap_manager.c提取）
-        const defaultKeymaps = {
-            0: [0x0029, 0x0054, 0x0055, 0x0056, 0x0059, 0x0060, 0x0061, 0x0057, 0x005C, 0x005D, 0x005E, 0x0059, 0x005A, 0x005B, 0x0062, 0x0063, 0x0058],
-            1: [0x0029, 0x0054, 0x0055, 0x002A, 0x0014, 0x001A, 0x0008, 0x0057, 0x0004, 0x0016, 0x0007, 0x0059, 0x005A, 0x005B, 0x0062, 0x0063, 0x0058]
-        };
+
+        
+        function getDefaultKeymaps(numKeys = 17) {
+            const baseMap0 = [0x0029, 0x0054, 0x0055, 0x0056, 0x005F, 0x0060, 0x0061, 0x0057, 0x005C, 0x005D, 0x005E, 0x0059, 0x005A, 0x005B, 0x0062, 0x0063, 0x0058];
+            const baseMap1 = [0x0029, 0x0054, 0x0055, 0x002A, 0x0014, 0x001A, 0x0008, 0x0057, 0x0004, 0x0016, 0x0007, 0x0059, 0x005A, 0x005B, 0x0062, 0x0063, 0x0058];
+            const extendMap = (baseMap, targetLength) => {
+                const extended = [...baseMap];
+                while (extended.length < targetLength) extended.push(0);
+                return extended;
+            };
+            return {
+                0: extendMap(baseMap0, numKeys), 1: extendMap(baseMap1, numKeys),
+                2: Array(numKeys).fill(0), 3: Array(numKeys).fill(0),
+                4: Array(numKeys).fill(0), 5: Array(numKeys).fill(0), 6: Array(numKeys).fill(0)
+            };
+        }
         
         // 加载默认键盘映射
         function loadDefaultKeymap() {
             const grid = document.getElementById('defaultKeymapGrid');
             grid.innerHTML = '';
+            
+            // 动态获取按键数量（正确处理0值）
+            const numKeys = window.numKeys !== undefined ? window.numKeys : 17;
+            
+            // 获取动态的默认映射
+            const defaultKeymaps = getDefaultKeymaps(numKeys);
             
             // 显示默认映射（层0）
             defaultKeymaps[0].forEach((code, index) => {
@@ -694,49 +1421,271 @@
             });
             
             // 如果是第一次加载自定义映射，初始化为空
-            if (!document.getElementById('customKeymapGrid').hasChildNodes()) {
-                initCustomKeymap();
+            const customGrid = document.getElementById('customKeymapGrid');
+            if (customGrid && !customGrid.hasChildNodes()) {
+                initCustomKeymap(1); // 初始化第一层自定义映射
             }
         }
         
-        // 初始化自定义键盘映射为空
-        function initCustomKeymap() {
-            const grid = document.getElementById('customKeymapGrid');
+
+        
+        function handleComboKeyChange(select) {
+            const value = select.value;
+            
+            if (value === 'custom') {
+                showCustomComboEditor(select);
+            }
+        }
+        
+        function showCustomComboEditor(select) {
+            const modal = document.createElement('div');
+            modal.className = 'combo-editor-modal';
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.5);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 10000;
+            `;
+            
+            const editor = document.createElement('div');
+            editor.className = 'combo-editor';
+            editor.style.cssText = `
+                background: white;
+                padding: 2rem;
+                border-radius: 1rem;
+                max-width: 400px;
+                width: 90%;
+                max-height: 80vh;
+                overflow-y: auto;
+            `;
+            
+            editor.innerHTML = `
+                <h3>自定义组合键</h3>
+                <div style="margin: 1rem 0;">
+                    <label>修饰键：</label><br>
+                    <div style="margin: 0.5rem 0;">
+                        <input type="checkbox" id="modCtrl" value="${MOD_LCTRL}"> Ctrl
+                        <input type="checkbox" id="modShift" value="${MOD_LSHIFT}" style="margin-left: 1rem;"> Shift
+                    </div>
+                    <div style="margin: 0.5rem 0;">
+                        <input type="checkbox" id="modAlt" value="${MOD_LALT}"> Alt
+                        <input type="checkbox" id="modWin" value="${MOD_LGUI}" style="margin-left: 1rem;"> Win
+                    </div>
+                </div>
+                <div style="margin: 1rem 0;">
+                    <label>基础键：</label><br>
+                    <select id="baseKeySelect" style="width: 100%; padding: 0.5rem; margin: 0.5rem 0;">
+                        ${getNormalKeyOptions(0).replace(/selected/g, '')}
+                    </select>
+                </div>
+                <div style="margin: 1rem 0; padding: 1rem; background: #f0f0f0; border-radius: 0.5rem;">
+                    <strong>预览：</strong>
+                    <span id="comboPreview">空（无功能）</span>
+                </div>
+                <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                    <button onclick="applyCustomCombo(this.parentElement.parentElement)" style="flex: 1; padding: 0.75rem; background: #2563eb; color: white; border: none; border-radius: 0.5rem;">应用</button>
+                    <button onclick="closeCustomComboEditor(this.parentElement.parentElement.parentElement)" style="flex: 1; padding: 0.75rem; background: #64748b; color: white; border: none; border-radius: 0.5rem;">取消</button>
+                </div>
+            `;
+            
+            modal.appendChild(editor);
+            document.body.appendChild(modal);
+            
+            modal.dataset.originalSelect = select.dataset.keyIndex;
+            
+            const updatePreview = () => {
+                const baseKey = parseInt(document.getElementById('baseKeySelect').value);
+                let modifierMask = 0;
+                
+                if (document.getElementById('modCtrl').checked) modifierMask |= MOD_LCTRL;
+                if (document.getElementById('modShift').checked) modifierMask |= MOD_LSHIFT;
+                if (document.getElementById('modAlt').checked) modifierMask |= MOD_LALT;
+                if (document.getElementById('modWin').checked) modifierMask |= MOD_LGUI;
+                
+                if (baseKey === 0 && modifierMask === 0) {
+                    document.getElementById('comboPreview').textContent = '空（无功能）';
+                } else if (baseKey === 0) {
+                    document.getElementById('comboPreview').textContent = '仅修饰键（无效）';
+                } else if (modifierMask === 0) {
+                    document.getElementById('comboPreview').textContent = getKeyName(baseKey);
+                } else {
+                    const comboKey = createComboKey(baseKey, modifierMask);
+                    document.getElementById('comboPreview').textContent = getKeyName(comboKey);
+                }
+            };
+            
+            document.getElementById('modCtrl').addEventListener('change', updatePreview);
+            document.getElementById('modShift').addEventListener('change', updatePreview);
+            document.getElementById('modAlt').addEventListener('change', updatePreview);
+            document.getElementById('modWin').addEventListener('change', updatePreview);
+            document.getElementById('baseKeySelect').addEventListener('change', updatePreview);
+            
+            updatePreview();
+        }
+        
+        // 应用自定义组合键
+        function applyCustomCombo(editor) {
+            const baseKey = parseInt(document.getElementById('baseKeySelect').value);
+            let modifierMask = 0;
+            
+            if (document.getElementById('modCtrl').checked) modifierMask |= MOD_LCTRL;
+            if (document.getElementById('modShift').checked) modifierMask |= MOD_LSHIFT;
+            if (document.getElementById('modAlt').checked) modifierMask |= MOD_LALT;
+            if (document.getElementById('modWin').checked) modifierMask |= MOD_LGUI;
+            
+            if (baseKey === 0) {
+                alert('请选择基础键！');
+                return;
+            }
+            
+            const comboKey = createComboKey(baseKey, modifierMask);
+            const modal = editor.parentElement.parentElement;
+            const selectIndex = modal.dataset.originalSelect;
+            const select = document.querySelector(`.key-select[data-key-index="${selectIndex}"]`);
+            
+            if (select) {
+                // 更新选项以显示正确的选择，但保留"自定义组合键..."选项
+                select.innerHTML = getComboKeyOptions(comboKey);
+                select.value = comboKey;
+            }
+            
+            closeCustomComboEditor(modal);
+        }
+        
+        // 关闭自定义组合键编辑器
+        function closeCustomComboEditor(modal) {
+            if (modal && modal.parentElement) {
+                modal.parentElement.removeChild(modal);
+            }
+        }
+        
+        // 处理按键变化事件
+        function handleKeyChange(select) {
+            const keyIndex = parseInt(select.dataset.keyIndex);
+            const layer = parseInt(select.dataset.layer);
+            const keyCode = select.value;
+            
+            // 如果是自定义组合键，打开编辑器
+            if (keyCode === 'custom') {
+                handleComboKeyChange(select);
+            } else {
+                // 自动保存单个按键
+                saveSingleKey(keyIndex, parseInt(keyCode), layer);
+            }
+        }
+        
+        // 初始化指定层自定义键盘映射为空
+        function initCustomKeymap(layer) {
+            const grid = document.getElementById('customKeymapGrid' + layer);
+            if (!grid) return;
+            
             grid.innerHTML = '';
             
-            // 创建17个空的按键选择器（根据NUM_KEYS的值）
-            for (let i = 0; i < 17; i++) {
+            // 动态获取按键数量（正确处理0值）
+            const numKeys = window.numKeys !== undefined ? window.numKeys : 17;
+            
+            // 创建按键选择器（根据NUM_KEYS的值）
+            for (let i = 0; i < numKeys; i++) {
                 const keyItem = document.createElement('div');
                 keyItem.className = 'key-item';
                 keyItem.dataset.keyIndex = i;
+                keyItem.dataset.layer = layer;
                 keyItem.innerHTML = `
                     <div class="key-number">按键 ${i + 1}</div>
-                    <select class="key-select" data-key-index="${i}">
-                        ${getKeyOptions(0)}
+                    <select class="key-select" data-key-index="${i}" data-layer="${layer}" onchange="handleKeyChange(this)">
+                        ${getMergedKeyOptions(0)}
                     </select>
                 `;
                 grid.appendChild(keyItem);
             }
         }
         
-        // 加载自定义键盘映射
-        async function loadCustomKeymap() {
+        // 全局按键映射存储（用于跟踪用户修改）
+        const customKeymaps = {
+            1: [],
+            2: [],
+            3: [],
+            4: [],
+            5: [],
+            6: []
+        };
+        
+        // 初始化按键映射存储（在获取按键数量后调用）
+        function initCustomKeymapsStorage() {
+            const numKeys = window.numKeys !== undefined ? window.numKeys : 17;
+            for (let layer = 1; layer <= 6; layer++) {
+                customKeymaps[layer] = Array(numKeys).fill(0);
+            }
+            console.log('初始化按键映射存储，按键数量:', numKeys);
+        }
+        
+        // 加载指定层自定义键盘映射
+        async function loadCustomKeymap(layer) {
             try {
-                // 实际设备上直接调用接口
-                const response = await fetch('/load-keymap');
+                console.log('开始加载自定义键盘映射层', layer, '...');
+                
+                // 如果该层尚未初始化，先初始化
+                const grid = document.getElementById('customKeymapGrid' + layer);
+                if (!grid) {
+                    console.error('找不到自定义键盘映射网格元素: customKeymapGrid' + layer);
+                    return;
+                }
+                if (!grid.hasChildNodes()) {
+                    initCustomKeymap(layer);
+                }
+                
+                // 确保customKeymaps已正确初始化
+                if (!customKeymaps[layer] || customKeymaps[layer].length === 0) {
+                    initCustomKeymapsStorage();
+                }
+                
+                // 调用后端API加载按键映射数据
+                const response = await fetch(`/load-keymap?layer=${layer}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
                 const data = await response.json();
+                console.log('加载响应数据:', data);
                 
                 if (data.status === 'success' && data.keymap) {
-                    const grid = document.getElementById('customKeymapGrid');
+                    console.log('加载的键码数据:', data.keymap);
+                    
+                    // 更新内存中的按键映射数据
+                    if (customKeymaps[layer] && customKeymaps[layer].length === data.keymap.length) {
+                        customKeymaps[layer] = data.keymap;
+                    }
+                    
                     const selects = grid.querySelectorAll('.key-select');
                     
+                    // 设置选择器的值，确保所有类型的键码都能正确显示
+                    // 注意：加载时只显示已保存的按键，未保存的按键保持为0（无功能）
                     data.keymap.forEach((code, index) => {
                         if (selects[index]) {
+                            // 确保任何模式下都能正确显示所有类型的键值
                             selects[index].value = code;
+                            
+                            // 如果当前值不存在于选项中，添加它
+                            if (code !== 0 && !selects[index].querySelector(`option[value="${code}"]`)) {
+                                const option = document.createElement('option');
+                                option.value = code;
+                                option.textContent = getKeyName(code);
+                                option.selected = true;
+                                selects[index].appendChild(option);
+                            }
+                            
+                            console.log('设置选择器', index, '值为:', code, '名称:', getKeyName(code), '是否为组合键:', isComboKey(code));
                         }
                     });
                     
-                    showStatus('按键映射加载成功', 'success');
+                    showStatus('层' + layer + '按键映射加载成功', 'success');
                 } else {
                     showStatus('加载失败：' + (data.message || '未知错误'), 'error');
                 }
@@ -746,26 +1695,43 @@
             }
         }
         
-        // 保存自定义键盘映射
-        async function saveCustomKeymap() {
+
+        
+        // 保存指定层自定义键盘映射
+        async function saveCustomKeymap(layer) {
             try {
-                const grid = document.getElementById('customKeymapGrid');
+                const grid = document.getElementById('customKeymapGrid' + layer);
                 const selects = grid.querySelectorAll('.key-select');
-                const keymap = Array.from(selects).map(select => parseInt(select.value));
+                const keymap = [];
                 
-                // 实际设备上直接调用接口
+                // 保存所有按键的值（包括零值），保持索引对应关系
+                selects.forEach(select => {
+                    const value = parseInt(select.value);
+                    keymap.push(value);
+                });
+                
+                console.log('保存的键码数据（所有按键）:', keymap);
+                
+                // 调用后端API保存整个键盘映射
                 const response = await fetch('/save-keymap', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ keymap: keymap })
+                    body: JSON.stringify({
+                        keymap: keymap,
+                        layer: layer
+                    })
                 });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
                 
                 const data = await response.json();
                 
                 if (data.status === 'success') {
-                    showStatus('按键映射保存成功', 'success');
+                    showStatus('层' + layer + '按键映射保存成功', 'success');
                 } else {
                     showStatus('保存失败：' + (data.message || '未知错误'), 'error');
                 }
@@ -775,37 +1741,118 @@
             }
         }
         
-        // 重置自定义键盘映射为空
-        function resetCustomKeymap() {
-            if (confirm('确定要将自定义映射重置为空吗？')) {
-                const grid = document.getElementById('customKeymapGrid');
+        // 保存单个按键映射
+        async function saveSingleKey(keyIndex, keyCode, layer) {
+            try {
+                console.log('保存单个按键:', {keyIndex, keyCode, layer});
+                
+                // 确保customKeymaps已正确初始化
+                if (!customKeymaps[layer] || customKeymaps[layer].length === 0) {
+                    initCustomKeymapsStorage();
+                }
+                
+                // 实际更新全局按键映射数据
+                if (customKeymaps[layer] && keyIndex >= 0 && keyIndex < customKeymaps[layer].length) {
+                    customKeymaps[layer][keyIndex] = keyCode;
+                    console.log('实际更新按键映射数据: 层', layer, '按键', keyIndex, '值', keyCode);
+                }
+                
+                // 调用后端API保存单个按键
+                const response = await fetch('/save-single-key', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        keyIndex: keyIndex,
+                        keyCode: keyCode,
+                        layer: layer
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    console.log('单个按键保存成功:', keyIndex, keyCode, layer);
+                    showStatus(`层${layer} 按键 ${keyIndex + 1} 保存成功`, 'success');
+                } else {
+                    console.error('单个按键保存失败:', data.message);
+                    showStatus(`层${layer} 按键 ${keyIndex + 1} 保存失败：${data.message || '未知错误'}`, 'error');
+                }
+            } catch (error) {
+                console.error('保存单个按键失败:', error);
+                showStatus(`层${layer} 按键 ${keyIndex + 1} 保存失败，请重试`, 'error');
+            }
+        }
+        
+        // 重置指定层自定义键盘映射为空
+        function resetCustomKeymap(layer) {
+            if (confirm('确定要将层' + layer + '自定义映射重置为空吗？')) {
+                const grid = document.getElementById('customKeymapGrid' + layer);
                 const selects = grid.querySelectorAll('.key-select');
                 
                 selects.forEach(select => {
                     select.value = '0';
                 });
                 
-                showStatus('自定义映射已重置为空', 'warning');
+                showStatus('层' + layer + '自定义映射已重置为空', 'warning');
             }
         }
         
-        // WiFi相关函数（保持原有功能）
+        // 状态提示函数
+        function showStatus(message, type = 'info') {
+            // 移除现有的状态提示
+            const existingStatus = document.querySelector('.status-message');
+            if (existingStatus) {
+                existingStatus.remove();
+            }
+            
+            // 创建新的状态提示
+            const statusElement = document.createElement('div');
+            statusElement.className = `status-message ${type}`;
+            statusElement.textContent = message;
+            
+            // 添加到页面
+            document.body.appendChild(statusElement);
+            
+            // 3秒后自动移除
+            setTimeout(() => {
+                if (statusElement.parentNode) {
+                    statusElement.style.animation = 'slideOutRight 0.3s ease';
+                    setTimeout(() => {
+                        if (statusElement.parentNode) {
+                            statusElement.remove();
+                        }
+                    }, 300);
+                }
+            }, 3000);
+        }
+        
+        // WiFi相关函数（优化为直接连接）
         async function connectWifi() {
             const ssid = document.getElementById('selectedWifi').value;
             const password = document.getElementById('wifiPassword').value;
             if (!ssid || !password) {
-                alert('请选择WiFi并输入密码');
+                showStatus('请选择WiFi并输入密码', 'error');
                 return;
             }
             
             try {
                 // 在本地测试环境中模拟连接成功
                 if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                    // 显示连接状态
+                    showStatus('正在连接到WiFi网络...（模拟）', 'warning');
+                    
                     // 添加延迟模拟连接过程
                     setTimeout(() => {
-                        alert('连接成功！（模拟）\n\n注意：实际设备连接成功后会从AP模式切换到STA模式，\nAP热点将关闭，您需要通过设备获取的新IP地址访问。\n\n如果需要重新配置WiFi，请重启设备。');
+                        showStatus('WiFi连接成功！（模拟）', 'success');
                         // 连接成功后禁用输入防止重复提交
-                        document.getElementById('wifiDropdown').style.backgroundColor = '#f0f0f0';
+                        document.getElementById('wifiDropdown').style.backgroundColor = '';
+                        document.getElementById('wifiDropdown').classList.add('readonly');
                         document.getElementById('wifiDropdown').style.cursor = 'not-allowed';
                         document.getElementById('wifiDropdown').removeEventListener('click', toggleDropdown);
                         document.getElementById('wifiPassword').disabled = true;
@@ -816,14 +1863,12 @@
                     return;
                 }
                 
-                // 注意：由于设备在连接成功后会立即切换网络模式，
-                // 从AP模式切换到STA模式，导致AP热点关闭，前端可能无法完整接收响应
-                
-                // 先显示连接尝试中的提示
-                alert('设备正在尝试连接到WiFi网络...\n\n注意：连接成功后设备将从AP模式切换到STA模式，\nAP热点将关闭，您需要通过设备获取的新IP地址访问。\n\n如果需要重新配置WiFi，请重启设备。');
+                // 显示连接状态
+                showStatus('设备正在尝试连接到WiFi网络...', 'warning');
                 
                 // 禁用输入防止重复提交
-                document.getElementById('wifiDropdown').style.backgroundColor = '#f0f0f0';
+                document.getElementById('wifiDropdown').style.backgroundColor = '';
+                document.getElementById('wifiDropdown').classList.add('readonly');
                 document.getElementById('wifiDropdown').style.cursor = 'not-allowed';
                 document.getElementById('wifiDropdown').removeEventListener('click', toggleDropdown);
                 document.getElementById('wifiPassword').disabled = true;
@@ -839,6 +1884,9 @@
                         body: JSON.stringify({ ssid: ssid, password: password })
                     });
                     
+                    // 显示连接成功状态
+                    showStatus('WiFi连接请求已发送，设备正在切换网络模式...', 'success');
+                    
                     // 添加延迟后尝试关闭或重定向网页
                     setTimeout(() => {
                         try {
@@ -848,39 +1896,35 @@
                             // 如果窗口没有关闭，重定向到空白页面
                             setTimeout(() => {
                                 window.location.href = 'about:blank';
-                                // 显示最终提示
-                                alert('设备已切换到STA模式，配置已完成。\n\n您可以关闭此页面，并通过设备获取的新IP地址访问设备。');
                             }, 500);
                         } catch (closeError) {
                             // 忽略关闭错误，因为浏览器安全限制可能阻止关闭非脚本打开的窗口
                             console.log('浏览器安全限制阻止关闭窗口');
                             // 重定向到空白页面
                             window.location.href = 'about:blank';
-                            // 显示提示
-                            alert('设备已切换到STA模式，配置已完成。\n\n您可以关闭此页面，并通过设备获取的新IP地址访问设备。');
                         }
                     }, 2000);
                 } catch (error) {
                     // 忽略错误，因为设备可能已经切换网络模式
                     console.log('设备可能已切换网络模式，忽略请求错误');
                     
+                    // 显示连接状态
+                    showStatus('WiFi连接过程已开始，设备正在切换网络模式...', 'success');
+                    
                     // 即使发生错误，也尝试关闭或重定向网页
                     setTimeout(() => {
                         window.location.href = 'about:blank';
-                        alert('设备配置过程已开始。\n\n您可以关闭此页面，设备将尝试连接到指定的WiFi网络。');
                     }, 1000);
                 }
             } catch (error) {
                 console.error('连接请求失败:', error);
-                // 增强错误提示，告知用户可能的原因
-                alert('连接请求发送失败，请重试\n\n可能原因：\n1. 设备正在切换网络模式\n2. AP热点已关闭\n3. 网络连接中断\n\n如果需要重新配置WiFi，请重启设备。');
+                // 使用状态提示替代alert
+                showStatus('连接请求发送失败，请重试。可能原因：设备正在切换网络模式或AP热点已关闭。', 'error');
             }
         }
         
-        // 获取并显示当前IP
         async function fetchIP() {
             try {
-                // 在本地测试环境中显示模拟IP
                 if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
                     document.getElementById('currentIP').textContent = '192.168.1.100 (模拟)';
                     return;
@@ -903,22 +1947,21 @@
         // 实时显示时间
         function updateTime() {
             const timeElement = document.getElementById('currentTime');
-            const now = new Date();
-            timeElement.textContent = now.toLocaleString();
+            if (timeElement) {
+                const now = new Date();
+                timeElement.textContent = now.toLocaleString();
+            }
         }
         
-        // 获取WiFi列表
         async function fetchWifiList() {
+            const wifiOptions = document.getElementById('wifiOptions');
+            
             try {
-                // 在本地测试环境中显示模拟WiFi列表
                 if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-                    const wifiOptions = document.getElementById('wifiOptions');
-                    // 完全清除现有选项，保留第一个默认选项
                     while (wifiOptions.children.length > 1) {
                         wifiOptions.removeChild(wifiOptions.lastChild);
                     }
                     
-                    // 添加模拟的WiFi网络
                     const mockNetworks = ['WiFi-1', 'WiFi-2', 'WiFi-3', 'WiFi-4'];
                     mockNetworks.forEach(ssid => {
                         const option = document.createElement('div');
@@ -933,17 +1976,52 @@
                     return;
                 }
                 
-                const response = await fetch('/scan-wifi');
-                const data = await response.json();
-                const wifiOptions = document.getElementById('wifiOptions');
-                
-                // 完全清除现有选项，保留第一个默认选项
+                // 显示扫描状态
                 while (wifiOptions.children.length > 1) {
                     wifiOptions.removeChild(wifiOptions.lastChild);
                 }
                 
-                // 添加扫描结果
-                if (data.status === 'success' && data.data.length > 0) {
+                const scanningOption = document.createElement('div');
+                scanningOption.className = 'select-item';
+                scanningOption.setAttribute('data-value', '');
+                scanningOption.textContent = '正在扫描WiFi网络...';
+                scanningOption.style.color = 'var(--text-color)';
+                scanningOption.style.opacity = '0.7';
+                scanningOption.style.cursor = 'wait';
+                wifiOptions.appendChild(scanningOption);
+                
+                // 使用AbortController实现超时控制
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => {
+                    controller.abort();
+                    console.log('WiFi扫描超时');
+                }, 15000); // 15秒超时
+                
+                const response = await fetch('/scan-wifi', {
+                    signal: controller.signal,
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Cache-Control': 'no-cache'
+                    }
+                });
+                
+                clearTimeout(timeoutId);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                console.log('WiFi扫描响应:', data);
+                
+                // 清除扫描状态
+                while (wifiOptions.children.length > 1) {
+                    wifiOptions.removeChild(wifiOptions.lastChild);
+                }
+                
+                if (data.status === 'success' && data.data && Array.isArray(data.data) && data.data.length > 0) {
+                    console.log(`发现 ${data.data.length} 个WiFi网络`);
                     data.data.forEach(ssid => {
                         const option = document.createElement('div');
                         option.className = 'select-item';
@@ -958,39 +2036,78 @@
                     const option = document.createElement('div');
                     option.className = 'select-item';
                     option.setAttribute('data-value', '');
-                    option.textContent = '未发现WiFi网络';
-                    option.style.color = '#999';
+                    option.textContent = data.message || '未发现WiFi网络';
+                    option.style.color = 'var(--text-color)';
+                    option.style.opacity = '0.6';
                     option.style.cursor = 'not-allowed';
-                    // 移除不可点击选项的悬停效果
                     option.addEventListener('mouseenter', function() {
-                        this.style.backgroundColor = 'white';
+                        this.style.backgroundColor = 'var(--card-bg)';
                     });
                     wifiOptions.appendChild(option);
                 }
             } catch (error) {
-                console.error('获取WiFi列表失败:', error);
-                const wifiOptions = document.getElementById('wifiOptions');
+                console.error('WiFi扫描失败:', error);
+                
                 // 清除现有选项，保留第一个默认选项
                 while (wifiOptions.children.length > 1) {
                     wifiOptions.removeChild(wifiOptions.lastChild);
                 }
+                
+                let errorMessage = '扫描失败，点击重试';
+                let errorColor = '#f56565';
+                
+                if (error.name === 'AbortError') {
+                    errorMessage = '扫描超时，点击重试';
+                } else if (error.message.includes('HTTP')) {
+                    errorMessage = '网络错误，点击重试';
+                } else if (error.message.includes('Failed to fetch')) {
+                    errorMessage = '连接失败，点击重试';
+                }
+                
                 const option = document.createElement('div');
                 option.className = 'select-item';
                 option.setAttribute('data-value', '');
-                option.textContent = '扫描失败，请重试';
-                option.style.color = '#999';
-                option.style.cursor = 'not-allowed';
-                // 移除不可点击选项的悬停效果
-                option.addEventListener('mouseenter', function() {
-                    this.style.backgroundColor = 'white';
+                option.textContent = errorMessage;
+                option.style.color = errorColor;
+                option.style.cursor = 'pointer';
+                option.title = '点击重新扫描WiFi网络';
+                
+                // 点击重试功能
+                option.addEventListener('click', function() {
+                    console.log('用户点击重试WiFi扫描');
+                    fetchWifiList();
                 });
+                
+                option.addEventListener('mouseenter', function() {
+                    this.style.backgroundColor = 'var(--card-bg)';
+                    this.style.opacity = '0.8';
+                });
+                
+                option.addEventListener('mouseleave', function() {
+                    this.style.backgroundColor = '';
+                    this.style.opacity = '1';
+                });
+                
                 wifiOptions.appendChild(option);
             }
         }
         
-        // 切换下拉菜单显示/隐藏
+        // 切换WiFi下拉菜单显示/隐藏
         function toggleDropdown() {
             const options = document.getElementById('wifiOptions');
+            // 关闭其他可能打开的下拉菜单
+            document.querySelectorAll('.select-items').forEach(item => {
+                if (item !== options) {
+                    item.style.display = 'none';
+                }
+            });
+            // 切换当前下拉菜单
+            options.style.display = options.style.display === 'block' ? 'none' : 'block';
+        }
+        
+        // 切换自定义层下拉菜单显示/隐藏
+        function toggleCustomLayerDropdown() {
+            const options = document.getElementById('customLayerOptions');
             // 关闭其他可能打开的下拉菜单
             document.querySelectorAll('.select-items').forEach(item => {
                 if (item !== options) {
@@ -1012,31 +2129,366 @@
         
         // 点击页面其他地方关闭下拉菜单
         document.addEventListener('click', function(event) {
-            const dropdown = document.getElementById('wifiDropdown');
-            const options = document.getElementById('wifiOptions');
-            if (!dropdown.contains(event.target) && !options.contains(event.target)) {
-                options.style.display = 'none';
+            const wifiDropdown = document.getElementById('wifiDropdown');
+            const wifiOptions = document.getElementById('wifiOptions');
+            const customLayerDropdown = document.getElementById('customLayerDropdown');
+            const customLayerOptions = document.getElementById('customLayerOptions');
+            
+            // 关闭WiFi下拉菜单
+            if (wifiDropdown && wifiOptions && !wifiDropdown.contains(event.target) && !wifiOptions.contains(event.target)) {
+                wifiOptions.style.display = 'none';
+            }
+            
+            // 关闭自定义层下拉菜单
+            if (customLayerDropdown && customLayerOptions && !customLayerDropdown.contains(event.target) && !customLayerOptions.contains(event.target)) {
+                customLayerOptions.style.display = 'none';
             }
         });
         
-        // 页面加载时初始化
-        window.onload = function() {
-            // 初始加载IP
-            fetchIP();
-            // 初始加载WiFi列表
-            fetchWifiList();
-            // 初始加载时间
-            updateTime();
-            // 每秒更新时间
-            setInterval(updateTime, 1000);
-            // 绑定连接按钮点击事件
-            document.getElementById('connectBtn').addEventListener('click', connectWifi);
-            // 绑定下拉菜单点击事件
-            document.getElementById('wifiDropdown').addEventListener('click', toggleDropdown);
-            // 给第一个默认选项添加事件监听
-            document.querySelector('.select-item').addEventListener('click', function() {
-                selectWifi(this);
+        function showStatus(message, type = 'success') {
+            let container = document.getElementById('toast-container');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'toast-container';
+                container.className = 'toast-container';
+                document.body.appendChild(container);
+            }
+            
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            
+            const icons = {
+                success: '✓',
+                error: '✕',
+                warning: '⚠'
+            };
+            
+            toast.innerHTML = `
+                <div class="toast-content">
+                    <div class="toast-icon">${icons[type] || icons.success}</div>
+                    <div class="toast-message">${message}</div>
+                    <button class="toast-close" onclick="this.parentElement.parentElement.remove()">×</button>
+                </div>
+            `;
+            
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.classList.add('show');
+            }, 10);
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+                toast.classList.add('hide');
+                
+                setTimeout(() => {
+                    if (toast.parentElement) {
+                        toast.remove();
+                    }
+                }, 300);
+            }, 3000);
+        }
+        
+        function editLayerNames() {
+            document.getElementById('customLayerOptions').style.display = 'none';
+            
+            const modal = document.getElementById('layerNameModal');
+            modal.classList.add('show');
+            
+            loadLayerNamesToModal();
+        }
+        
+        function closeLayerNameModal() {
+            const modal = document.getElementById('layerNameModal');
+            modal.classList.remove('show');
+        }
+        
+        function loadLayerNamesToModal() {
+            const container = document.getElementById('layerNameItems');
+            container.innerHTML = '';
+            const defaultNames = {'custom1':'自定义层1','custom2':'自定义层2','custom3':'自定义层3','custom4':'自定义层4','custom5':'自定义层5','custom6':'自定义层6'};
+            const savedNames = JSON.parse(localStorage.getItem('customLayerNames') || '{}');
+            [1,2,3,4,5,6].forEach(i => {
+                const layerId = 'custom' + i;
+                const currentName = savedNames[layerId] || defaultNames[layerId];
+                const item = document.createElement('div');
+                item.className = 'layer-name-item';
+                item.innerHTML = `<span class="layer-name-label">层${i}</span><input type="text" class="layer-name-input" value="${currentName}" data-layer="${layerId}" maxlength="20" placeholder="输入层名称">`;
+                container.appendChild(item);
             });
+        }
+        
+        function saveLayerNames() {
+            const inputs = document.querySelectorAll('.layer-name-input');
+            const newNames = {};
+            
+            inputs.forEach(input => {
+                const layerId = input.getAttribute('data-layer');
+                const name = input.value.trim();
+                
+                if (!name) {
+                    const layerNum = layerId.replace('custom', '');
+                    newNames[layerId] = '自定义层' + layerNum;
+                } else {
+                    newNames[layerId] = name;
+                }
+            });
+            
+            localStorage.setItem('customLayerNames', JSON.stringify(newNames));
+            
+            updateCustomLayerDropdown();
+            
+            closeLayerNameModal();
+            
+            showStatus('层名称保存成功', 'success');
+        }
+        
+        function updateCustomLayerDropdown() {
+            const savedNames = JSON.parse(localStorage.getItem('customLayerNames') || '{}');
+            
+            const defaultNames = {
+                'custom1': '自定义层1',
+                'custom2': '自定义层2', 
+                'custom3': '自定义层3',
+                'custom4': '自定义层4',
+                'custom5': '自定义层5',
+                'custom6': '自定义层6'
+            };
+            
+            const options = document.querySelectorAll('#customLayerOptions .select-item[data-value]');
+            options.forEach(option => {
+                const layerId = option.getAttribute('data-value');
+                const displayName = savedNames[layerId] || defaultNames[layerId];
+                option.textContent = displayName;
+            });
+            
+            const currentDropdown = document.getElementById('customLayerDropdown');
+            if (currentDropdown) {
+                const activeKeymap = document.querySelector('.keymap-tab.active');
+                if (activeKeymap) {
+                    const layerId = activeKeymap.getAttribute('onclick').match(/switchKeymapTab\('(custom\d+)'\)/);
+                    if (layerId && layerId[1]) {
+                        const displayName = savedNames[layerId[1]] || defaultNames[layerId[1]];
+                        currentDropdown.textContent = displayName;
+                    }
+                }
+            }
+        }
+        
+        function getLayerDisplayName(layerId) {
+            const savedNames = JSON.parse(localStorage.getItem('customLayerNames') || '{}');
+            const defaultNames = {
+                'custom1': '自定义层1',
+                'custom2': '自定义层2', 
+                'custom3': '自定义层3',
+                'custom4': '自定义层4',
+                'custom5': '自定义层5',
+                'custom6': '自定义层6'
+            };
+            
+            return savedNames[layerId] || defaultNames[layerId];
+        }
+        
+        // 获取按键分组
+        function getKeyGroup(keyCode) {
+            // 首先检查是否为组合键
+            if (isComboKey(keyCode)) {
+                return '组合键';
+            }
+            
+            // 无功能键 (值为0)
+            if (keyCode === 0) return '无功能键';
+            
+            // 字母键 (A-Z: 0x0004-0x001D)
+            if (keyCode >= 0x0004 && keyCode <= 0x001D) return '字母键';
+            // 数字键 (1-0: 0x001E-0x0027)
+            if (keyCode >= 0x001E && keyCode <= 0x0027) return '数字键';
+            // 功能键 (F1-F12: 0x003A-0x0045)
+            if (keyCode >= 0x003A && keyCode <= 0x0045) return '功能键';
+            // 方向键 (0x004F-0x0052)
+            if (keyCode >= 0x004F && keyCode <= 0x0052) return '方向键';
+            // 控制键 (Ctrl, Alt, Shift, Win: 0x0100-0x0800)
+            if (keyCode >= 0x0100 && keyCode <= 0x0800) return '控制键';
+            // 特殊键 (Enter, Space, Tab, Backspace, etc.)
+            if (keyCode >= 0x0028 && keyCode <= 0x0039) return '特殊键';
+            // 小键盘键 (0x0053-0x0063)
+            if (keyCode >= 0x0053 && keyCode <= 0x0063) return '特殊键';
+            // 其他系统键
+            if (keyCode >= 0x0046 && keyCode <= 0x004E) return '特殊键';
+            // 多媒体键
+            if (keyCode >= 0x00E0 && keyCode <= 0x00FF) return '多媒体键';
+            
+            return '其他键';
+        }
+        
+        // 按键分组过滤功能
+        function filterKeysByGroup() {
+            const groupSelect = document.getElementById('keyGroupSelect');
+            const selectedGroup = groupSelect.value;
+            
+            // 获取所有按键元素（包括.key-item容器和.key-select选择器）
+            const keyItems = document.querySelectorAll('.key-item');
+            
+            keyItems.forEach(keyItem => {
+                const select = keyItem.querySelector('.key-select');
+                if (select) {
+                    // 显示所有按键，按键都能修改
+                    keyItem.style.display = 'block';
+                    
+                    // 保存当前选中的值
+                    const currentValue = select.value;
+                    
+                    // 重新生成选项列表，根据当前分组过滤
+                    select.innerHTML = getMergedKeyOptions(parseInt(currentValue) || currentValue);
+                    
+                    // 检查当前值是否在新生成的选项中
+                    const hasCurrentValue = select.querySelector(`option[value="${currentValue}"]`);
+                    if (!hasCurrentValue && currentValue !== '0' && currentValue !== 'custom') {
+                        // 如果当前值不在新分组的选项中，添加一个临时选项来保留当前值
+                        const tempOption = document.createElement('option');
+                        tempOption.value = currentValue;
+                        tempOption.textContent = getKeyName(parseInt(currentValue));
+                        tempOption.selected = true;
+                        select.appendChild(tempOption);
+                    }
+                }
+            });
+        }
+        
+        // 主题管理功能
+        let themeMode = 'auto'; // 'auto', 'light', 'dark'
+        
+        function initTheme() {
+            // 从localStorage获取保存的主题模式
+            const savedMode = localStorage.getItem('themeMode') || 'auto';
+            themeMode = savedMode;
+            
+            applyTheme();
+            
+            // 监听系统主题变化
+            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+                if (themeMode === 'auto') {
+                    applyTheme();
+                }
+            });
+        }
+        
+        function applyTheme() {
+            let actualTheme;
+            
+            if (themeMode === 'auto') {
+                // 自动模式：跟随系统偏好
+                try {
+                    const darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+                    const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                    
+                    if (isMobile) {
+                        // 移动设备增强检测
+                        console.log('移动设备深色模式检测 - 媒体查询支持:', darkModeMediaQuery.media !== 'not all');
+                        console.log('移动设备深色模式检测 - 当前状态:', darkModeMediaQuery.matches);
+                        
+                        // 检查媒体查询是否被支持
+                        if (darkModeMediaQuery.media === 'not all') {
+                            // 媒体查询不支持，使用时间作为备用方案
+                            const currentHour = new Date().getHours();
+                            actualTheme = (currentHour < 7 || currentHour > 19) ? 'dark' : 'light';
+                            console.log('移动设备使用时间备用方案:', actualTheme, '(当前时间:', currentHour, ')');
+                        } else {
+                            actualTheme = darkModeMediaQuery.matches ? 'dark' : 'light';
+                        }
+                    } else {
+                        // 桌面设备标准检测
+                        actualTheme = darkModeMediaQuery.matches ? 'dark' : 'light';
+                    }
+                } catch (error) {
+                    console.warn('主题检测失败，使用默认浅色主题:', error);
+                    actualTheme = 'light';
+                }
+            } else {
+                // 手动模式：使用指定主题
+                actualTheme = themeMode;
+            }
+            
+            document.documentElement.setAttribute('data-theme', actualTheme);
+            updateThemeButton();
+            
+            console.log('应用主题:', themeMode, '->', actualTheme);
+        }
+        
+        function toggleTheme() {
+            // 循环切换：自动 -> 浅色 -> 深色 -> 自动
+            if (themeMode === 'auto') {
+                themeMode = 'light';
+            } else if (themeMode === 'light') {
+                themeMode = 'dark';
+            } else {
+                themeMode = 'auto';
+            }
+            
+            console.log('切换主题模式:', themeMode);
+            
+            // 保存到localStorage
+            localStorage.setItem('themeMode', themeMode);
+            
+            // 应用新主题
+            applyTheme();
+            
+            // 显示切换提示
+            let message;
+            if (themeMode === 'auto') {
+                message = '已切换到自动模式（跟随系统）';
+            } else if (themeMode === 'light') {
+                message = '已切换到浅色模式';
+            } else {
+                message = '已切换到深色模式';
+            }
+            showStatus(message, 'success');
+        }
+        
+        function updateThemeButton() {
+            const themeIcon = document.querySelector('.theme-icon');
+            const themeText = document.querySelector('.theme-text');
+            
+            if (themeIcon && themeText) {
+                if (themeMode === 'auto') {
+                    themeIcon.textContent = '🌓';
+                    themeText.textContent = '自动';
+                } else if (themeMode === 'dark') {
+                    themeIcon.textContent = '🌙';
+                    themeText.textContent = '深色';
+                } else {
+                    themeIcon.textContent = '☀️';
+                    themeText.textContent = '浅色';
+                }
+            }
+        }
+        
+        window.onload = async function() {
+            // 初始化主题
+            initTheme();
+            
+            await fetchNumKeys();
+            initCustomKeymapsStorage();
+            fetchIP();
+            fetchWifiList();
+            updateTime();
+            setInterval(updateTime, 1000);
+            document.getElementById('connectBtn').addEventListener('click', connectWifi);
+            document.getElementById('wifiDropdown').addEventListener('click', toggleDropdown);
+            document.getElementById('customLayerDropdown').addEventListener('click', toggleCustomLayerDropdown);
+            document.querySelector('#wifiOptions .select-item').addEventListener('click', function() { selectWifi(this); });
+            
+            // 为按键分组选择器添加事件监听器
+            const keyGroupSelect = document.getElementById('keyGroupSelect');
+            if (keyGroupSelect) {
+                keyGroupSelect.addEventListener('change', filterKeysByGroup);
+            }
+            
+            // 延迟初始化，确保DOM完全加载
+            setTimeout(() => {
+                [1,2,3,4,5,6].forEach(layer => initCustomKeymap(layer));
+                updateCustomLayerDropdown();
+            }, 100);
         };
     </script>
 </body>

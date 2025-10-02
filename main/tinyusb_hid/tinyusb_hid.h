@@ -52,6 +52,9 @@ typedef struct {
     QueueHandle_t hid_queue;
 } tinyusb_hid_t;
 
+// 控制HID报告发送的函数
+extern void tinyusb_hid_enable_report(bool enable);
+
 
 /**
  * @brief Initialize tinyusb HID device.

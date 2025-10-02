@@ -30,13 +30,13 @@
 
 /* 项目内部模块头文件 */
 #include "joystick.h"
-#include "oled_menu.h"
+#include "../oled_driver/OLED_driver.h"
 #include "keyboard_led.h"
 #include "wifi_app/wifi_app.h"           // WiFi功能接口
 #include "spi_scanner/keymap_manager.h"   // 按键映射管理
-#include "nvs_manager/menu_nvs_manager.h" // 菜单NVS存储管理
-#include "oled_menu_wifi.h"              // WiFi相关动作函数
-#include "keyboard_led/keyboard_led.h"
+#include "nvs_manager/unified_nvs_manager.h" // 统一NVS存储管理
+#include "oled_menu_combined.h"
+#include "oled_menu.h"
 
 /* 图像数据声明 */
 extern const uint8_t Image_setings[];
@@ -47,6 +47,17 @@ extern const uint8_t Image_setings[];
 
 /* 任务配置宏 - 这些值在源文件中硬编码 */
 /* 注意：实际的任务配置参数在oled_menu_example_start()函数中定义 */
+
+/* ======================================================
+ * 外部变量声明区域
+ * ======================================================*/
+
+/**
+ * @brief 当前键盘映射层
+ * 0: 默认层
+ * 1: 自定义层
+ */
+extern uint8_t current_keymap_layer;
 
 /* ======================================================
  * 公共函数声明区域
@@ -78,13 +89,22 @@ void oled_menu_example_start(void);
 void MenuManager_ClearKeyQueue(void);
 
 /**
- * @brief 获取按键事件队列句柄
+ * @brief 获取键盘键码队列句柄
  * 
- * 用于外部模块访问按键事件队列
+ * 用于外部模块访问键盘键码事件队列（uint16_t类型）
  * 
- * @return 按键事件队列句柄，如果未初始化则返回NULL
+ * @return 键盘键码队列句柄，如果未初始化则返回NULL
  */
-QueueHandle_t get_key_queue(void);
+QueueHandle_t get_keyboard_queue(void);
+
+/**
+ * @brief 获取摇杆操作码队列句柄
+ * 
+ * 用于外部模块访问摇杆操作码事件队列（uint8_t类型）
+ * 
+ * @return 摇杆操作码队列句柄，如果未初始化则返回NULL
+ */
+QueueHandle_t get_joystick_queue(void);
 
 /**
  * @brief 获取菜单管理器实例
@@ -94,6 +114,15 @@ QueueHandle_t get_key_queue(void);
  * @return 菜单管理器指针，如果未初始化则返回NULL
  */
 MenuManager* get_menu_manager(void);
+
+/**
+ * @brief 设置统一NVS管理器实例
+ * 
+ * 用于外部模块设置统一的NVS管理器实例，避免多个实例冲突
+ * 
+ * @param manager 统一NVS管理器实例
+ */
+void set_unified_nvs_manager(unified_nvs_manager_t* manager);
 
 #ifdef __cplusplus
 }

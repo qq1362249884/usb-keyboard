@@ -45,6 +45,7 @@ typedef struct {
 joystick_state_t get_joystick_direction();
 void sw_gpio_init(void);
 button_press_type_t detect_button_press();
+void update_last_activity_time();
 
 
 #endif

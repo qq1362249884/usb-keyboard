@@ -9,8 +9,9 @@ extern "C" {
 #include <string.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include "OLED.h"  // 使用OLED显示函数
+#include "../oled_fonts/OLED.h"  // 使用OLED显示函数
 #include "esp_log.h"
+#include <freertos/FreeRTOS.h>
 #include <freertos/queue.h>
 
 

@@ -13,7 +13,7 @@
 #include "led_strip.h"
 #include "rgb_matrix_drivers.h"
 #include "rgb_matrix.h"
-#include "nvs_manager/nvs_manager.h"
+#include "nvs_manager/unified_nvs_manager.h"
 
 //宏定义位置
 #define WS2812B_POWER_PIN   0
@@ -62,6 +62,7 @@ esp_err_t kob_rgb_matrix_prev_mode(void);
 esp_err_t kob_rgb_save_config(void);
 esp_err_t kob_rgb_load_config(void);
 led_effect_config_t* kob_rgb_get_config(void);
+void kob_rgb_set_nvs_manager(unified_nvs_manager_t* manager);
 
 // OLED菜单动作函数
 esp_err_t kob_rgb_matrix_increase_hue(void);

@@ -11,7 +11,7 @@
 #include "esp_rom_sys.h" // for esp_rom_delay_us
 
 
-#include "spi_config.h"
+#include "spi_keyboard_config.h" // 合并后的SPI和按键映射配置文件
 #include "keycodes.h"
 
 #include "usb_descriptors.h"

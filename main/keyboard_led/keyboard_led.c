@@ -1,6 +1,6 @@
 #include "keyboard_led.h"
 #include "rgb_matrix_nvs.h"
-#include "nvs_manager/nvs_manager.h"
+#include "nvs_manager/unified_nvs_manager.h"
 #include <inttypes.h>
 
 //全局变量定义
@@ -49,10 +49,19 @@ static led_effect_config_t g_led_effect_config = {
     .enabled = false
 };
 
+// 统一NVS管理器实例
+static unified_nvs_manager_t* g_unified_nvs_manager = NULL;
+
 // 获取配置结构体指针
 led_effect_config_t* kob_rgb_get_config(void)
 {
     return &g_led_effect_config;
+}
+
+// 设置统一NVS管理器实例
+void kob_rgb_set_nvs_manager(unified_nvs_manager_t* manager)
+{
+    g_unified_nvs_manager = manager;
 }
 
 // 保存配置到NVS
@@ -60,52 +69,36 @@ esp_err_t kob_rgb_save_config(void)
 {
     ESP_LOGI(TAG, "Saving RGB matrix configuration to NVS");
     
-    NvsBaseManager_t* nvs_manager = nvs_base_create("keyboard_led");
-    if (!nvs_manager) {
-        ESP_LOGE(TAG, "Failed to create NVS manager");
+    esp_err_t ret = ESP_OK;
+    
+    if (!g_unified_nvs_manager) {
+        ESP_LOGE(TAG, "Unified NVS manager not initialized");
         return ESP_FAIL;
     }
     
-    esp_err_t ret = ESP_OK;
-    
-    // 初始化NVS管理器
-    if (nvs_base_init(nvs_manager) != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to initialize NVS manager");
-        ret = ESP_FAIL;
-    } else {
-        // 打开NVS命名空间，设置为读写模式(false)，这样当命名空间不存在时会自动创建
-        if (nvs_base_open(nvs_manager, false) != ESP_OK) {
-            ESP_LOGE(TAG, "Failed to open NVS namespace 'keyboard_led'");
-            ret = ESP_FAIL;
-        } else {
-            // 保存灯效模式
-            ret = nvs_base_save_u32(nvs_manager, "rgb_mode", g_led_effect_config.mode);
-            if (ret != ESP_OK) {
-                ESP_LOGE(TAG, "Failed to save RGB matrix mode: %s", esp_err_to_name(ret));
-            }
-            
-            // 保存HSV值
-            ret |= nvs_base_save_u32(nvs_manager, "rgb_hue", (uint32_t)g_led_effect_config.hue);
-            ret |= nvs_base_save_u32(nvs_manager, "rgb_sat", (uint32_t)g_led_effect_config.sat);
-            ret |= nvs_base_save_u32(nvs_manager, "rgb_val", (uint32_t)g_led_effect_config.val);
-            
-            // 保存速度
-            ret |= nvs_base_save_u32(nvs_manager, "rgb_speed", (uint32_t)g_led_effect_config.speed);
-            
-            // 保存启用状态
-            ret |= nvs_base_save_bool(nvs_manager, "rgb_enabled", g_led_effect_config.enabled);
-            
-            if (ret == ESP_OK) {
-                ESP_LOGI(TAG, "RGB matrix configuration saved successfully");
-            } else {
-                ESP_LOGE(TAG, "Failed to save some RGB matrix configuration parameters");
-            }
-            
-            nvs_base_close(nvs_manager);
-        }
+    // 保存灯效模式 - 使用正确的数据类型
+    ret = UNIFIED_NVS_SAVE_U16(g_unified_nvs_manager, NVS_NAMESPACE_SYSTEM, "rgb_mode", g_led_effect_config.mode);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to save RGB matrix mode: %s", esp_err_to_name(ret));
     }
     
-    nvs_base_destroy(nvs_manager);
+    // 保存HSV值 - 使用正确的数据类型
+    ret |= UNIFIED_NVS_SAVE_U8(g_unified_nvs_manager, NVS_NAMESPACE_SYSTEM, "rgb_hue", g_led_effect_config.hue);
+    ret |= UNIFIED_NVS_SAVE_U8(g_unified_nvs_manager, NVS_NAMESPACE_SYSTEM, "rgb_sat", g_led_effect_config.sat);
+    ret |= UNIFIED_NVS_SAVE_U8(g_unified_nvs_manager, NVS_NAMESPACE_SYSTEM, "rgb_val", g_led_effect_config.val);
+    
+    // 保存速度 - 使用正确的数据类型
+    ret |= UNIFIED_NVS_SAVE_U8(g_unified_nvs_manager, NVS_NAMESPACE_SYSTEM, "rgb_speed", g_led_effect_config.speed);
+    
+    // 保存启用状态
+    ret |= UNIFIED_NVS_SAVE_BOOL(g_unified_nvs_manager, NVS_NAMESPACE_SYSTEM, "rgb_enabled", g_led_effect_config.enabled);
+    
+    if (ret == ESP_OK) {
+        ESP_LOGI(TAG, "RGB matrix configuration saved successfully");
+    } else {
+        ESP_LOGE(TAG, "Failed to save some RGB matrix configuration parameters");
+    }
+    
     return ret;
 }
 
@@ -114,64 +107,58 @@ esp_err_t kob_rgb_load_config(void)
 {
     ESP_LOGI(TAG, "Loading RGB matrix configuration from NVS");
     
-    NvsBaseManager_t* nvs_manager = nvs_base_create("keyboard_led");
-    if (!nvs_manager) {
-        ESP_LOGE(TAG, "Failed to create NVS manager");
+    esp_err_t ret = ESP_OK;
+    uint16_t mode = 0;
+    uint8_t hue = 0, sat = 0, val = 0, speed = 0;
+    bool enabled = false;
+    
+    if (!g_unified_nvs_manager) {
+        ESP_LOGE(TAG, "Unified NVS manager not initialized");
         return ESP_FAIL;
     }
     
-    esp_err_t ret = ESP_OK;
-    if (nvs_base_init(nvs_manager) == ESP_OK && nvs_base_open(nvs_manager, true) == ESP_OK) {
-        uint32_t mode = 0;
-    bool enabled = false;
-    
-    // 加载灯效模式
-    if (nvs_base_load_u32(nvs_manager, "rgb_mode", &mode) == ESP_OK) {
-        g_led_effect_config.mode = (uint16_t)mode;
+    // 加载灯效模式 - 使用正确的数据类型
+    if (UNIFIED_NVS_LOAD_U16(g_unified_nvs_manager, NVS_NAMESPACE_SYSTEM, "rgb_mode", &mode) == ESP_OK) {
+        g_led_effect_config.mode = mode;
     } else {
         ESP_LOGW(TAG, "RGB matrix mode not found in NVS, using default: %d", DEFAULT_RGB_MODE);
         g_led_effect_config.mode = DEFAULT_RGB_MODE;
         ret = ESP_ERR_NOT_FOUND;
     }
     
-    // 加载HSV值
-    uint32_t temp_hue = 0, temp_sat = 0, temp_val = 0, temp_speed = 0;
-        if (nvs_base_load_u32(nvs_manager, "rgb_hue", &temp_hue) == ESP_OK) {
-            g_led_effect_config.hue = (uint8_t)temp_hue;
-        } else {
-            g_led_effect_config.hue = DEFAULT_RGB_HUE;
-        }
-        
-        if (nvs_base_load_u32(nvs_manager, "rgb_sat", &temp_sat) == ESP_OK) {
-            g_led_effect_config.sat = (uint8_t)temp_sat;
-        } else {
-            g_led_effect_config.sat = DEFAULT_RGB_SAT;
-        }
-        
-        if (nvs_base_load_u32(nvs_manager, "rgb_val", &temp_val) == ESP_OK) {
-            g_led_effect_config.val = (uint8_t)temp_val;
-        } else {
-            g_led_effect_config.val = DEFAULT_RGB_VAL;
-        }
-        
-        // 加载速度
-        if (nvs_base_load_u32(nvs_manager, "rgb_speed", &temp_speed) == ESP_OK) {
-            g_led_effect_config.speed = (uint8_t)temp_speed;
-        } else {
-            g_led_effect_config.speed = DEFAULT_RGB_SPEED;
-        }
-        
-        // 加载启用状态
-        if (nvs_base_load_bool(nvs_manager, "rgb_enabled", &enabled) == ESP_OK) {
-            g_led_effect_config.enabled = enabled;
-        } else {
-            g_led_effect_config.enabled = false;
-        }
-        
-        nvs_base_close(nvs_manager);
+    // 加载HSV值 - 使用正确的数据类型
+    if (UNIFIED_NVS_LOAD_U8(g_unified_nvs_manager, NVS_NAMESPACE_SYSTEM, "rgb_hue", &hue) == ESP_OK) {
+        g_led_effect_config.hue = hue;
+    } else {
+        g_led_effect_config.hue = DEFAULT_RGB_HUE;
     }
     
-    nvs_base_destroy(nvs_manager);
+    if (UNIFIED_NVS_LOAD_U8(g_unified_nvs_manager, NVS_NAMESPACE_SYSTEM, "rgb_sat", &sat) == ESP_OK) {
+        g_led_effect_config.sat = sat;
+    } else {
+        g_led_effect_config.sat = DEFAULT_RGB_SAT;
+    }
+    
+    if (UNIFIED_NVS_LOAD_U8(g_unified_nvs_manager, NVS_NAMESPACE_SYSTEM, "rgb_val", &val) == ESP_OK) {
+        g_led_effect_config.val = val;
+    } else {
+        g_led_effect_config.val = DEFAULT_RGB_VAL;
+    }
+    
+    // 加载速度 - 使用正确的数据类型
+    if (UNIFIED_NVS_LOAD_U8(g_unified_nvs_manager, NVS_NAMESPACE_SYSTEM, "rgb_speed", &speed) == ESP_OK) {
+        g_led_effect_config.speed = speed;
+    } else {
+        g_led_effect_config.speed = DEFAULT_RGB_SPEED;
+    }
+    
+    // 加载启用状态
+    if (UNIFIED_NVS_LOAD_BOOL(g_unified_nvs_manager, NVS_NAMESPACE_SYSTEM, "rgb_enabled", &enabled) == ESP_OK) {
+        g_led_effect_config.enabled = enabled;
+    } else {
+        g_led_effect_config.enabled = false;
+    }
+    
     return ret;
 }
 
@@ -609,13 +596,27 @@ static void app_led_task(void *arg)
         ESP_LOGE(TAG, "Failed to initialize RGB matrix: %s", esp_err_to_name(err));
     }
 
-
-    // 从NVS加载配置
-    kob_rgb_load_config();
+    // 等待NVS管理器设置完成（最多等待5秒）
+    int wait_count = 0;
+    const int max_wait_count = 50; // 5秒
+    while (g_unified_nvs_manager == NULL && wait_count < max_wait_count) {
+        vTaskDelay(100 / portTICK_PERIOD_MS);
+        wait_count++;
+    }
+    
+    if (g_unified_nvs_manager == NULL) {
+        ESP_LOGW(TAG, "NVS manager not set after waiting, using default configuration");
+    } else {
+        // 从NVS加载配置
+        kob_rgb_load_config();
+    }
     
     // 设置灯效模式
     if (g_led_effect_config.mode == RGB_MODE_WINDOWS_LIGHTING) {
         ESP_LOGI(TAG, "RGB matrix initialized in Windows Lighting mode");
+        // 在Windows Lighting模式下也需要设置HSV和速度值
+        rgb_matrix_sethsv(g_led_effect_config.hue, g_led_effect_config.sat, g_led_effect_config.val);
+        rgb_matrix_set_speed(g_led_effect_config.speed);
     } else {
         rgb_matrix_mode(g_led_effect_config.mode);
         

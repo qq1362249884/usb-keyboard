@@ -674,4 +674,3 @@ MenuItem* build_menu_tree(void) {
     // 返回根菜单（索引为0的菜单项）
     return items[0];
 }
-

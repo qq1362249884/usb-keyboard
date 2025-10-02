@@ -16,6 +16,7 @@ typedef enum {
     MODULE_OLED,             // OLED显示
     MODULE_KEYBOARD,         // 键盘扫描
     MODULE_WIFI,             // WiFi模块
+    MODULE_SLEEP_MODE,       // 睡眠模式功能
     MODULE_MAX               // 模块数量上限
 } module_id_t;
 

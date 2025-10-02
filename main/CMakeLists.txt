@@ -5,10 +5,10 @@ set(src_dirs
                 tinyusb_hid
                 nvs_manager
                 joystick
-                ssd1306
                 ssd1306/oled_menu
                 ssd1306/oled_fonts
                 ssd1306/oled_driver
+                ssd1306/oled_action
                 "../hid_device"
                 wifi_app
                 init_manager)
@@ -21,10 +21,10 @@ set(include_dirs
                 nvs_manager
                 init_manager
                 joystick
-                ssd1306
                 ssd1306/oled_menu
                 ssd1306/oled_fonts
                 ssd1306/oled_driver
+                ssd1306/oled_action
                 "../hid_device"
                 wifi_app)
 

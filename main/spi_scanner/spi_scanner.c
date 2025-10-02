@@ -2,10 +2,11 @@
 #include "tinyusb_hid.h" // 添加tinyusb_hid头文件，用于访问tud_suspended()和tud_remote_wakeup()函数
 #include "ssd1306/oled_menu/oled_menu_display.h"
 #include "keyboard_led/keyboard_led.h"
+#include "spi_keyboard_config.h" // 合并后的SPI和按键映射配置文件
+#include "keymap_manager.h" // 添加组合键支持
 
 // 外部声明当前映射层变量
 extern uint8_t current_keymap_layer;
-
 
 spi_device_handle_t spi_device = NULL; // SPI句柄
 uint8_t received_data[NUM_BYTES];
@@ -104,13 +105,12 @@ static hid_report_t build_hid_report(uint8_t _layer)
             
             // 检测按键状态变化
             if (current_state != prev_state) {
-                // 将按键索引转换为行列坐标
-                // 这里假设键盘布局是5行4列，需要根据实际硬件布局调整
-                uint8_t row = key_index / 4;
-                uint8_t col = key_index % 4;
-                
-                // 处理RGB矩阵按键事件
-                kob_rgb_process_key_event(row, col, current_state);
+                // 使用按键映射表将按键索引转换为行列坐标
+                uint8_t row, col;
+                if (key_index_to_matrix(key_index, &row, &col)) {
+                    // 只有当按键有对应的LED时才处理RGB矩阵按键事件
+                    kob_rgb_process_key_event(row, col, current_state);
+                }
             }
             
             if (current_state) {
@@ -129,19 +129,49 @@ static hid_report_t build_hid_report(uint8_t _layer)
         uint8_t key = keymap->key_pressed_data[i];
         uint16_t kc = keymaps[_layer][key];
 
-        switch (kc){
-        //修饰键处理，若有修饰键按下，则将修饰键状态更新到结构体中
-        case KC_LEFT_CTRL ... KC_RIGHT_GUI:
-            // Modifier key
-            modify |= 1 << (kc - KC_LEFT_CTRL); // Corrected the base for modifier calculation
-            continue;
-            break; 
-        //普通按键处理
-        default:
-            if (kc != KC_NO) {
-                remap_data[keynum++] = kc;
+        // 将按键代码发送到键盘队列
+        QueueHandle_t keyboard_queue = get_keyboard_queue();
+        if (keyboard_queue != NULL) {
+            xQueueSend(keyboard_queue, &kc, 0);
+        }
+
+        // 检查是否为组合键
+        if (is_combo_key(kc)) {
+            // 组合键处理：提取修饰键和基础键
+            uint16_t modifier_mask = get_modifier_mask(kc);
+            uint16_t base_key = get_base_key(kc);
+            
+            // 处理修饰键（简化方案：只使用左修饰键）
+            if (modifier_mask & MOD_LCTRL) modify |= (1 << 0);  // KC_LEFT_CTRL
+            if (modifier_mask & MOD_LSHIFT) modify |= (1 << 1); // KC_LEFT_SHIFT
+            if (modifier_mask & MOD_LALT) modify |= (1 << 2);    // KC_LEFT_ALT
+            if (modifier_mask & MOD_LGUI) modify |= (1 << 3);    // KC_LEFT_GUI
+            // 删除右修饰键处理，因为左修饰键和右修饰键功能相同
+            // if (modifier_mask & MOD_RCTRL) modify |= (1 << 4);   // KC_RIGHT_CTRL
+            // if (modifier_mask & MOD_RSHIFT) modify |= (1 << 5);  // KC_RIGHT_SHIFT
+            // if (modifier_mask & MOD_RALT) modify |= (1 << 6);    // KC_RIGHT_ALT
+            // if (modifier_mask & MOD_RGUI) modify |= (1 << 7);    // KC_RIGHT_GUI
+            
+            // 处理基础键
+            if (base_key != KC_NO) {
+                remap_data[keynum++] = base_key;
             }
-            break;                   
+        } else {
+            // 普通按键处理
+            switch (kc){
+            //修饰键处理，若有修饰键按下，则将修饰键状态更新到结构体中
+            case KC_LEFT_CTRL ... KC_RIGHT_GUI:
+                // Modifier key
+                modify |= 1 << (kc - KC_LEFT_CTRL); // Corrected the base for modifier calculation
+                continue;
+                break; 
+            //普通按键处理
+            default:
+                if (kc != KC_NO) {
+                    remap_data[keynum++] = kc;
+                }
+                break;                    
+            }
         }
     }
 
@@ -172,13 +202,30 @@ static hid_report_t build_hid_report(uint8_t _layer)
     return kbd_hid_report;
 }
 
+/**
+ * @brief 当需要时唤醒USB主机
+ * 
+ * 检查主机是否允许远程唤醒，并在USB挂起时执行唤醒操作
+ */
+extern bool s_remote_wakeup_enabled; // 从tinyusb_hid.c引用远程唤醒允许标志
+
 static void wakeup_host_if_needed(void)
 {
+    // 检查主机是否允许远程唤醒
+    if (!s_remote_wakeup_enabled) {
+        ESP_LOGD("usb_spi", "Remote wakeup not enabled by host");
+        return;
+    }
+    
     // 检查USB是否处于挂起状态
     if (tud_suspended()) {
         // 唤醒主机
         ESP_LOGI("usb_spi", "Waking up host from suspend mode");
-        tud_remote_wakeup();
+        if (tud_remote_wakeup()) {
+            ESP_LOGI("usb_spi", "Remote wakeup signal sent successfully");
+        } else {
+            ESP_LOGW("usb_spi", "Failed to send remote wakeup signal");
+        }
     }
 }
 
@@ -191,26 +238,37 @@ static void spi_scanner_task(void *pvParameter)
     // 初始化上一次按键状态
     uint8_t prev_received_data[NUM_BYTES] = {0};
     bool keys_pressed = false;
+    bool key_state_changed = false;
 
     while(1)
     {
         read_74hc165_data();
-        apply_debounce_filter(150); 
+        apply_debounce_filter(10); // 减少去抖动延迟到10ms
 
         // 检测按键状态变化
         keys_pressed = false;
+        key_state_changed = false;
+        
         for(int i = 0; i < NUM_BYTES; i++)
         {
             if(received_data[i] != 0) // 有按键被按下
             {
                 keys_pressed = true;
-                break;
+            }
+            
+            // 检测按键状态是否发生变化
+            if(received_data[i] != prev_received_data[i])
+            {
+                key_state_changed = true;
             }
         }
 
-        // 如果有新按键按下，尝试唤醒主机
-        if(keys_pressed)
+        // 只有当按键状态从释放变为按下时才尝试唤醒主机
+        // 这样可以避免电脑刚进入睡眠状态就被唤醒的问题
+        if(keys_pressed && key_state_changed)
         {
+            // 增加一个小延时，确保电脑已经完全进入睡眠状态
+            vTaskDelay(10 / portTICK_PERIOD_MS); // 减少唤醒延迟到10ms
             wakeup_host_if_needed();
         }
 
@@ -219,7 +277,7 @@ static void spi_scanner_task(void *pvParameter)
         // 保存当前按键状态用于下一次比较
         memcpy(prev_received_data, received_data, NUM_BYTES);
         
-        vTaskDelay(20 / portTICK_PERIOD_MS);                
+        vTaskDelay(5 / portTICK_PERIOD_MS); // 减少扫描延迟到5ms                
     }
     vTaskDelete(NULL);
 }

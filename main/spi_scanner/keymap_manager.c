@@ -1,4 +1,5 @@
 #include "keymap_manager.h"
+#include "nvs_manager/unified_nvs_manager.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -6,27 +7,35 @@ extern "C" {
 
 
 static const char *TAG_NVS = "NVS_KEYMAP";
-static const char *TAG_TEST = "KEYMAP_TEST";
-
-// NVS存储键名前缀
-#define KEYMAP_NVS_KEY_PREFIX "keymap_"
 
 // 默认按键映射
-// 注意：层0是不可修改的默认映射，层1是可自定义的映射
-uint16_t keymaps[2][NUM_KEYS] = {
+// 注意：层0是不可修改的默认映射，层1-6是可自定义的映射
+uint16_t keymaps[TOTAL_LAYERS][NUM_KEYS] = {
     // 层0 - 不可修改的默认映射
     [0] ={  KC_ESC , KC_KP_SLASH, KC_KP_ASTERISK, KC_KP_MINUS, 
             KC_KP_7, KC_KP_8, KC_KP_9, KC_KP_PLUS, 
             KC_KP_4, KC_KP_5, KC_KP_6, 
             KC_KP_1, KC_KP_2, KC_KP_3, 
             KC_KP_0, KC_KP_DOT, KC_KP_ENTER},
-    // 层1 - 可自定义的映射
-    [1] ={}
+    // 层1-6 - 可自定义的映射（初始化为空）
+    [1] ={},
+    [2] ={},
+    [3] ={},
+    [4] ={},
+    [5] ={},
+    [6] ={}
 };
 
-// 全局NVS管理器句柄
-static KeymapNvsManager_t* g_nvs_manager = NULL;
+// 全局统一NVS管理器句柄（使用外部管理器）
+static unified_nvs_manager_t* g_nvs_manager = NULL;
 
+/**
+ * @brief 设置NVS管理器实例
+ * @param manager 外部NVS管理器实例
+ */
+void set_nvs_manager(unified_nvs_manager_t* manager) {
+    g_nvs_manager = manager;
+}
 
 /**
  * @brief 初始化NVS并加载按键映射
@@ -34,40 +43,38 @@ static KeymapNvsManager_t* g_nvs_manager = NULL;
  * @return 其他 失败
  */
 esp_err_t nvs_keymap_init(void) {    
-    // 如果NVS管理器已存在，先销毁
+    // 如果NVS管理器已存在，直接使用
     if (g_nvs_manager) {
-        keymap_nvs_manager_destroy(g_nvs_manager);
-        g_nvs_manager = NULL;
+        ESP_LOGI(TAG_NVS, "Using existing unified NVS manager");
+        return ESP_OK;
     }
     
-    // 创建NVS管理器实例
-    g_nvs_manager = keymap_nvs_manager_create("keymaps", KEYMAP_NVS_KEY_PREFIX, NUM_KEYS, 2, &keymaps[0][0]);
+    // 如果没有外部管理器，创建默认实例
+    g_nvs_manager = unified_nvs_manager_create_default();
     if (!g_nvs_manager) {
-        ESP_LOGE(TAG_NVS, "Failed to create NVS manager");
+        ESP_LOGE(TAG_NVS, "Failed to create unified NVS manager");
         return ESP_FAIL;
     }
     
     // 初始化管理器
-    esp_err_t err = keymap_nvs_manager_init(g_nvs_manager);
+    esp_err_t err = unified_nvs_manager_init(g_nvs_manager);
     if (err != ESP_OK) {
-        ESP_LOGE(TAG_NVS, "Failed to initialize NVS manager");
-        keymap_nvs_manager_destroy(g_nvs_manager);
+        ESP_LOGE(TAG_NVS, "Failed to initialize unified NVS manager");
+        unified_nvs_manager_destroy(g_nvs_manager);
         g_nvs_manager = NULL;
         return err;
     }
     
-    // 从NVS加载自定义层(层1)的按键映射数据到运行时数组
+    // 从NVS加载所有自定义层(层1-6)的按键映射数据到运行时数组
     // 这样系统重启后，自定义层的数据会自动加载
-    err = keymap_nvs_manager_load(g_nvs_manager, 1, &keymaps[1][0]);
-    if (err == ESP_OK) {
-        ESP_LOGI(TAG_NVS, "Successfully loaded custom keymap (layer 1) from NVS");
-    } else if (err == ESP_ERR_NOT_FOUND) {
-        ESP_LOGW(TAG_NVS, "No saved custom keymap found in NVS, using default values for layer 1");
-    } else {
-        ESP_LOGE(TAG_NVS, "Failed to load custom keymap from NVS: %s", esp_err_to_name(err));
+    for (uint8_t layer = FIRST_CUSTOM_LAYER; layer <= LAST_CUSTOM_LAYER; layer++) {
+        err = unified_nvs_load_keymap_layer(g_nvs_manager, layer, &keymaps[layer][0], NUM_KEYS);
+        if (err == ESP_OK) {
+            ESP_LOGI(TAG_NVS, "Successfully loaded custom keymap (layer %d) from NVS", layer);
+        }
     }
     
-    ESP_LOGI(TAG_NVS, "NVS manager initialized successfully");
+    ESP_LOGI(TAG_NVS, "Unified NVS manager initialized successfully");
     return ESP_OK;
 }
 
@@ -89,7 +96,7 @@ esp_err_t save_keymap_to_nvs(uint8_t layer, const uint16_t *keymap) {
     // 复制到运行时数组
     memcpy(&keymaps[layer][0], keymap, sizeof(uint16_t) * NUM_KEYS);
     
-    esp_err_t err = keymap_nvs_manager_save(g_nvs_manager, layer, &keymaps[layer][0]);
+    esp_err_t err = unified_nvs_save_keymap_layer(g_nvs_manager, layer, &keymaps[layer][0], NUM_KEYS);
     if (err != ESP_OK) {
         ESP_LOGE(TAG_NVS, "Failed to save keymap for layer %d", layer);
     } else {
@@ -114,7 +121,7 @@ esp_err_t load_keymap_from_nvs(uint8_t layer, uint16_t *keymap) {
         }
     }
     
-    esp_err_t err = keymap_nvs_manager_load(g_nvs_manager, layer, &keymaps[layer][0]);
+    esp_err_t err = unified_nvs_load_keymap_layer(g_nvs_manager, layer, &keymaps[layer][0], NUM_KEYS);
     if (err != ESP_OK) {
         ESP_LOGE(TAG_NVS, "Failed to load keymap for layer %d", layer);
     } else {
@@ -142,7 +149,10 @@ esp_err_t reset_keymap_to_default(uint8_t layer) {
         }
     }
     
-    esp_err_t err = keymap_nvs_manager_reset(g_nvs_manager, layer);
+    // 使用新的统一NVS管理器删除按键映射层数据
+    char key[32];
+    snprintf(key, sizeof(key), "layer_%d", layer);
+    esp_err_t err = unified_nvs_manager_erase(g_nvs_manager, NVS_NAMESPACE_KEYMAP, key);
     if (err != ESP_OK) {
         ESP_LOGE(TAG_NVS, "Failed to reset keymap for layer %d", layer);
     } else {
@@ -153,21 +163,42 @@ esp_err_t reset_keymap_to_default(uint8_t layer) {
 }
 
 /**
- * @brief 测试按键映射配置功能
- * 这个函数演示如何修改、保存和加载按键映射
+ * @brief 保存单个按键到NVS
+ * @param layer 层索引
+ * @param key_index 按键索引
+ * @param key_code 键码
+ * @return ESP_OK 成功
+ * @return 其他 失败
  */
-void test_keymap_config(void) {
+esp_err_t save_single_key_to_nvs(uint8_t layer, uint8_t key_index, uint16_t key_code) {
     if (!g_nvs_manager) {
         esp_err_t err = nvs_keymap_init();
         if (err != ESP_OK) {
-            ESP_LOGE(TAG_NVS, "Failed to initialize NVS manager");
-            return;
+            return err;
         }
     }
     
-    // 使用C++的测试函数
-    keymap_nvs_manager_test_config(g_nvs_manager, &keymaps[0][0]);
+    // 检查索引是否有效
+    if (key_index >= NUM_KEYS) {
+        ESP_LOGE(TAG_NVS, "Invalid key index: %d (max: %d)", key_index, NUM_KEYS - 1);
+        return ESP_ERR_INVALID_ARG;
+    }
+    
+    // 更新运行时数组中的单个按键
+    keymaps[layer][key_index] = key_code;
+    
+    // 保存整个映射到NVS
+    esp_err_t err = unified_nvs_save_keymap_layer(g_nvs_manager, layer, &keymaps[layer][0], NUM_KEYS);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG_NVS, "Failed to save single key for layer %d, index %d", layer, key_index);
+    } else {
+        ESP_LOGI(TAG_NVS, "Saved single key for layer %d, index %d, code %d successfully", layer, key_index, key_code);
+    }
+    
+    return err;
 }
+
+
 
 /**
  * @brief 清理NVS管理器资源
@@ -175,52 +206,49 @@ void test_keymap_config(void) {
  */
 void nvs_keymap_cleanup(void) {
     if (g_nvs_manager) {
-        keymap_nvs_manager_destroy(g_nvs_manager);
+        unified_nvs_manager_destroy(g_nvs_manager);
         g_nvs_manager = NULL;
-        ESP_LOGI(TAG_NVS, "NVS manager cleaned up");
+        ESP_LOGI(TAG_NVS, "Unified NVS manager cleaned up");
     }
 }
 
+
+
 /**
- * @brief 按键映射测试任务
- * 这个任务演示如何使用NVS功能来修改、保存和加载按键映射
+ * @brief 检查是否为组合键
+ * @param keycode 键码
+ * @return true 是组合键，false 不是组合键
  */
-void keymap_test_task(void *pvParameter) {
-    ESP_LOGI(TAG_TEST, "Starting keymap test task");
-
-    // 等待系统初始化完成
-    vTaskDelay(2000 / portTICK_PERIOD_MS);
-
-    // 初始化NVS（如果还没有初始化）
-    esp_err_t err = nvs_keymap_init();
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG_TEST, "Failed to initialize NVS manager");
-        vTaskDelete(NULL);
-    }
-
-    // 运行测试函数
-    test_keymap_config();
-
-    // 测试持续运行，以便观察效果
-    while (1) {
-        // 每5秒打印一次当前按键映射
-        ESP_LOGI(TAG_TEST, "Current keymap for layer 1 (address: %p):", keymaps[1]);
-        for (int i = 0; i < NUM_KEYS; i++) {
-            ESP_LOGI(TAG_TEST, "Key %d: 0x%04X", i, keymaps[1][i]);
-        }
-
-        vTaskDelay(5000 / portTICK_PERIOD_MS);
-    }
-
-    vTaskDelete(NULL);
+bool is_combo_key(uint16_t keycode) {
+    return (keycode & KEY_COMBO_FLAG) == KEY_COMBO_FLAG;
 }
 
 /**
- * @brief 启动按键映射测试
+ * @brief 获取组合键的基础键码
+ * @param keycode 组合键码
+ * @return 基础键码
  */
-void start_keymap_test(void) {
-    xTaskCreate(keymap_test_task, "keymap_test_task", 4096, NULL, 5, NULL);
-    ESP_LOGI(TAG_TEST, "Keymap test task created");
+uint16_t get_base_key(uint16_t keycode) {
+    return keycode & KEY_BASE_MASK;
+}
+
+/**
+ * @brief 获取组合键的修饰键掩码
+ * @param keycode 组合键码
+ * @return 修饰键掩码
+ */
+uint16_t get_modifier_mask(uint16_t keycode) {
+    return keycode & KEY_MODIFIER_MASK;
+}
+
+/**
+ * @brief 创建组合键
+ * @param base_key 基础键码
+ * @param modifier_mask 修饰键掩码
+ * @return 组合键码
+ */
+uint16_t create_combo_key(uint16_t base_key, uint16_t modifier_mask) {
+    return KEY_COMBO_FLAG | (base_key & KEY_BASE_MASK) | (modifier_mask & KEY_MODIFIER_MASK);
 }
 
 #ifdef __cplusplus
