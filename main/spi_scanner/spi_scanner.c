@@ -233,7 +233,6 @@ static void spi_scanner_task(void *pvParameter)
  {
     spi_hid_init();
     tinyusb_hid_init();
-    nvs_keymap_init(); // 初始化NVS并加载按键映射
 
     // 初始化上一次按键状态
     uint8_t prev_received_data[NUM_BYTES] = {0};

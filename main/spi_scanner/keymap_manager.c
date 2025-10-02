@@ -46,6 +46,16 @@ esp_err_t nvs_keymap_init(void) {
     // 如果NVS管理器已存在，直接使用
     if (g_nvs_manager) {
         ESP_LOGI(TAG_NVS, "Using existing unified NVS manager");
+        
+        // 从NVS加载所有自定义层(层1-6)的按键映射数据到运行时数组
+        // 这样系统重启后，自定义层的数据会自动加载
+        for (uint8_t layer = FIRST_CUSTOM_LAYER; layer <= LAST_CUSTOM_LAYER; layer++) {
+            esp_err_t err = unified_nvs_load_keymap_layer(g_nvs_manager, layer, &keymaps[layer][0], NUM_KEYS);
+            if (err == ESP_OK) {
+                ESP_LOGI(TAG_NVS, "Successfully loaded custom keymap (layer %d) from NVS", layer);
+            }
+        }
+        
         return ESP_OK;
     }
     

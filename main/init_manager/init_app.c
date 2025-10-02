@@ -36,12 +36,10 @@ static esp_err_t init_nvs(void) {
  * @brief NVS模块配置应用函数
  */
 static esp_err_t apply_nvs_config(void) {
-    ESP_LOGI(INIT_APP_TAG, "Applying NVS configuration...");
     
     // 创建统一NVS管理器实例
     g_unified_nvs_manager = unified_nvs_manager_create_default();
     if (!g_unified_nvs_manager) {
-        ESP_LOGE(INIT_APP_TAG, "Failed to create unified NVS manager");
         return ESP_FAIL;
     }
     
@@ -53,7 +51,6 @@ static esp_err_t apply_nvs_config(void) {
  * @brief WS2812 LED模块初始化函数
  */
 static esp_err_t init_ws2812(void) {
-    ESP_LOGI(INIT_APP_TAG, "Initializing WS2812...");
     // 创建LED任务（会初始化WS2812硬件）
     led_task();
     return ESP_OK;
@@ -63,10 +60,8 @@ static esp_err_t init_ws2812(void) {
  * @brief WS2812 LED模块配置应用函数
  */
 static esp_err_t apply_ws2812_config(void) {
-    ESP_LOGI(INIT_APP_TAG, "Applying WS2812 configuration...");
     
     if (!g_unified_nvs_manager) {
-        ESP_LOGE(INIT_APP_TAG, "Unified NVS manager not initialized");
         return ESP_FAIL;
     }
     
@@ -127,7 +122,6 @@ static esp_err_t apply_ws2812_config(void) {
  * @brief OLED显示模块初始化函数
  */
 static esp_err_t init_oled(void) {
-    ESP_LOGI(INIT_APP_TAG, "Initializing OLED display...");
     // OLED显示的初始化会在oled_menu_example_start内部完成
     return ESP_OK;
 }
@@ -136,7 +130,6 @@ static esp_err_t init_oled(void) {
  * @brief OLED显示模块配置应用函数
  */
 static esp_err_t apply_oled_config(void) {
-    ESP_LOGI(INIT_APP_TAG, "Applying OLED configuration...");
     
     // 设置统一NVS管理器实例到OLED菜单模块
     if (g_unified_nvs_manager) {
@@ -166,7 +159,6 @@ static esp_err_t apply_oled_config(void) {
  * @brief 键盘扫描模块初始化函数
  */
 static esp_err_t init_keyboard(void) {
-    ESP_LOGI(INIT_APP_TAG, "Initializing keyboard scanner...");
     // 创建键盘扫描任务
     spi_scanner_keyboard_task();
     return ESP_OK;
@@ -176,10 +168,8 @@ static esp_err_t init_keyboard(void) {
  * @brief 键盘扫描模块配置应用函数
  */
 static esp_err_t apply_keyboard_config(void) {
-    ESP_LOGI(INIT_APP_TAG, "Applying keyboard configuration...");
     
     if (!g_unified_nvs_manager) {
-        ESP_LOGE(INIT_APP_TAG, "Unified NVS manager not initialized");
         return ESP_FAIL;
     }
     
@@ -193,7 +183,6 @@ static esp_err_t apply_keyboard_config(void) {
         return err;
     }
     
-    ESP_LOGI(INIT_APP_TAG, "Keyboard mapping configuration applied successfully");
     return ESP_OK;
 }
 
@@ -201,7 +190,6 @@ static esp_err_t apply_keyboard_config(void) {
  * @brief WiFi模块初始化函数
  */
 static esp_err_t init_wifi(void) {
-    ESP_LOGI(INIT_APP_TAG, "Initializing WiFi...");
     // WiFi的硬件初始化会在wifi_task中完成
     return ESP_OK;
 }
@@ -210,10 +198,8 @@ static esp_err_t init_wifi(void) {
  * @brief WiFi模块配置应用函数
  */
 static esp_err_t apply_wifi_config(void) {
-    ESP_LOGI(INIT_APP_TAG, "Applying WiFi configuration...");
     
     if (!g_unified_nvs_manager) {
-        ESP_LOGE(INIT_APP_TAG, "Unified NVS manager not initialized");
         return ESP_FAIL;
     }
     
@@ -231,7 +217,6 @@ static esp_err_t apply_wifi_config(void) {
         
         // 如果WiFi启用状态为true，则调用WiFi开关函数启用WiFi
         if (wifi_enabled) {
-            ESP_LOGI(INIT_APP_TAG, "根据保存的状态启用WiFi");
             err = wifi_station_change(true);
             if (err != ESP_OK) {
                 ESP_LOGE(INIT_APP_TAG, "启用WiFi失败: %s", esp_err_to_name(err));
@@ -240,7 +225,6 @@ static esp_err_t apply_wifi_config(void) {
             ESP_LOGI(INIT_APP_TAG, "WiFi启用成功");
         } 
     } else if (err == ESP_ERR_NVS_NOT_FOUND) {
-        ESP_LOGI(INIT_APP_TAG, "未找到保存的WiFi启用状态，使用默认状态（禁用）");
         // 保存默认状态到NVS
         bool default_wifi_enabled = false;
         err = UNIFIED_NVS_SAVE_BOOL(g_unified_nvs_manager, NVS_NAMESPACE_WIFI, "enabled", default_wifi_enabled);
@@ -252,7 +236,6 @@ static esp_err_t apply_wifi_config(void) {
         return err;
     }
     
-    ESP_LOGI(INIT_APP_TAG, "WiFi configuration applied successfully");
     return ESP_OK;
 }
 
@@ -263,7 +246,6 @@ static esp_err_t apply_wifi_config(void) {
  * 使用初始化管理器协调所有模块的初始化顺序
  */
 esp_err_t app_init(void) {
-    ESP_LOGI(INIT_APP_TAG, "Starting application initialization...");
     
     // 初始化管理器
     esp_err_t ret = init_manager_init();
@@ -361,10 +343,7 @@ esp_err_t app_init(void) {
         ESP_LOGE(INIT_APP_TAG, "Failed to start initialization: %s", esp_err_to_name(ret));
         return ret;
     }
-    
-    // 等待关键模块初始化完成
-    ESP_LOGI(INIT_APP_TAG, "Waiting for critical modules to initialize...");
-    
+       
     // 等待NVS模块初始化完成
     ret = init_manager_wait_for_module(MODULE_NVS, 5000);
     if (ret != ESP_OK) {
@@ -409,6 +388,5 @@ esp_err_t app_init(void) {
         ESP_LOGE(INIT_APP_TAG, "Failed to apply WiFi configuration: %s", esp_err_to_name(ret));
     }
     
-    ESP_LOGI(INIT_APP_TAG, "Application initialization completed successfully");
     return ESP_OK;
 }

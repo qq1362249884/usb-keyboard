@@ -611,20 +611,20 @@ static void app_led_task(void *arg)
         kob_rgb_load_config();
     }
     
-    // 设置灯效模式
+    // 应用加载的配置到RGB矩阵（不触发自动保存）
     if (g_led_effect_config.mode == RGB_MODE_WINDOWS_LIGHTING) {
         ESP_LOGI(TAG, "RGB matrix initialized in Windows Lighting mode");
         // 在Windows Lighting模式下也需要设置HSV和速度值
-        rgb_matrix_sethsv(g_led_effect_config.hue, g_led_effect_config.sat, g_led_effect_config.val);
-        rgb_matrix_set_speed(g_led_effect_config.speed);
+        rgb_matrix_sethsv_noeeprom(g_led_effect_config.hue, g_led_effect_config.sat, g_led_effect_config.val);
+        rgb_matrix_set_speed_noeeprom(g_led_effect_config.speed);
     } else {
-        rgb_matrix_mode(g_led_effect_config.mode);
+        rgb_matrix_mode_noeeprom(g_led_effect_config.mode);
         
         // 设置HSV值
-        rgb_matrix_sethsv(g_led_effect_config.hue, g_led_effect_config.sat, g_led_effect_config.val);
+        rgb_matrix_sethsv_noeeprom(g_led_effect_config.hue, g_led_effect_config.sat, g_led_effect_config.val);
         
         // 设置速度
-        rgb_matrix_set_speed(g_led_effect_config.speed);
+        rgb_matrix_set_speed_noeeprom(g_led_effect_config.speed);
     }
     
     while (1)

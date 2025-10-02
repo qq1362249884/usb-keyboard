@@ -104,10 +104,6 @@ static esp_err_t init_namespace(unified_nvs_manager_t* manager, nvs_namespace_t 
         ns->opened = true;
         ns->initialized = true;
         
-        char message[128];
-        snprintf(message, sizeof(message), "Namespace '%s' initialized successfully", 
-                 ns->namespace_name);
-        log_message(manager, message, ESP_LOG_INFO);
     }
     
     return ESP_OK;

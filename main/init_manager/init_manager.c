@@ -46,12 +46,10 @@ static void module_init_task(void *arg) {
 
     // 执行模块初始化
     desc->state = INIT_STATE_IN_PROGRESS;
-    ESP_LOGI(TAG, "Starting initialization of %s module", module_names[desc->module_id]);
 
     esp_err_t err = desc->init_func();
     if (err == ESP_OK) {
         desc->state = INIT_STATE_COMPLETED;
-        ESP_LOGI(TAG, "%s module initialized successfully", module_names[desc->module_id]);
         // 释放就绪信号量
         xSemaphoreGive(desc->ready_sem);
     } else {
@@ -79,7 +77,6 @@ esp_err_t init_manager_init(void) {
         return ESP_FAIL;
     }
 
-    ESP_LOGI(TAG, "Initialization manager initialized successfully");
     return ESP_OK;
 }
 
@@ -117,8 +114,6 @@ esp_err_t init_manager_register_module(const module_init_desc_t *desc) {
     }
 
     g_registered_module_count++;
-    ESP_LOGI(TAG, "Module %d registered successfully", desc->module_id);
-
     xSemaphoreGive(g_manager_mutex);
     return ESP_OK;
 }
@@ -223,7 +218,6 @@ esp_err_t init_manager_apply_module_config(module_id_t module_id) {
     }
 
     // 应用配置
-    ESP_LOGI(TAG, "Applying configuration for module %d", module_id);
     esp_err_t err = g_module_descriptors[module_id].apply_config_func();
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to apply configuration for module %d: %s", 
@@ -231,7 +225,6 @@ esp_err_t init_manager_apply_module_config(module_id_t module_id) {
         return err;
     }
 
-    ESP_LOGI(TAG, "Configuration applied successfully for module %d", module_id);
     return ESP_OK;
 }
 
