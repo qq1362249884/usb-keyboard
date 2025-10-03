@@ -13,6 +13,11 @@ uint8_t received_data[NUM_BYTES];
 uint8_t debounce_data[NUM_BYTES]; 
 uint16_t remap_data[NUM_KEYS];
 
+// 多媒体按键状态跟踪
+static uint32_t consumer_key_press_time = 0; // 多媒体按键按下时间
+static uint16_t last_consumer_key = 0; // 最后按下的多媒体按键
+static bool consumer_key_active = false; // 多媒体按键是否处于活动状态
+
 
 static void spi_hid_init(void)
 {
@@ -79,6 +84,7 @@ static hid_report_t build_hid_report(uint8_t _layer)
     //局部变量和结构体初始化
     uint8_t modify = 0;
     uint8_t keynum = 0;
+    uint16_t consumer_key = 0; // 消费者控制按键（多媒体按键）
     const uint8_t full_bytes = NUM_KEYS / 8; // 完整字节数
     const uint8_t remaining_bits = NUM_KEYS % 8; // 剩余位数
     uint8_t bit_index = 0;
@@ -88,6 +94,7 @@ static hid_report_t build_hid_report(uint8_t _layer)
 
     keymap_t *keymap = malloc(sizeof(keymap_t) + NUM_KEYS * sizeof(uint16_t));
     hid_report_t kbd_hid_report = {0};
+    hid_report_t consumer_hid_report = {0};
 
     if (!keymap) {
         // 内存分配失败处理, 返回一个空的报告
@@ -146,11 +153,7 @@ static hid_report_t build_hid_report(uint8_t _layer)
             if (modifier_mask & MOD_LSHIFT) modify |= (1 << 1); // KC_LEFT_SHIFT
             if (modifier_mask & MOD_LALT) modify |= (1 << 2);    // KC_LEFT_ALT
             if (modifier_mask & MOD_LGUI) modify |= (1 << 3);    // KC_LEFT_GUI
-            // 删除右修饰键处理，因为左修饰键和右修饰键功能相同
-            // if (modifier_mask & MOD_RCTRL) modify |= (1 << 4);   // KC_RIGHT_CTRL
-            // if (modifier_mask & MOD_RSHIFT) modify |= (1 << 5);  // KC_RIGHT_SHIFT
-            // if (modifier_mask & MOD_RALT) modify |= (1 << 6);    // KC_RIGHT_ALT
-            // if (modifier_mask & MOD_RGUI) modify |= (1 << 7);    // KC_RIGHT_GUI
+
             
             // 处理基础键
             if (base_key != KC_NO) {
@@ -165,6 +168,33 @@ static hid_report_t build_hid_report(uint8_t _layer)
                 modify |= 1 << (kc - KC_LEFT_CTRL); // Corrected the base for modifier calculation
                 continue;
                 break; 
+            //多媒体按键处理（消费者控制设备）
+            case KC_AUDIO_MUTE ... KC_BRIGHTNESS_DOWN:
+                // 消费者控制按键（多媒体按键）
+                // 将键盘键码转换为HID消费者控制键码
+                switch (kc) {
+                    case KC_AUDIO_MUTE: consumer_key = 0x00E2; break; // HID_CONSUMER_CONTROL_MUTE
+                    case KC_AUDIO_VOL_UP: consumer_key = 0x00E9; break; // HID_CONSUMER_VOLUME_INCREMENT
+                    case KC_AUDIO_VOL_DOWN: consumer_key = 0x00EA; break; // HID_CONSUMER_VOLUME_DECREMENT
+                    case KC_MEDIA_NEXT_TRACK: consumer_key = 0x00B5; break; // HID_CONSUMER_SCAN_NEXT_TRACK
+                    case KC_MEDIA_PREV_TRACK: consumer_key = 0x00B6; break; // HID_CONSUMER_SCAN_PREVIOUS_TRACK
+                    case KC_MEDIA_PLAY_PAUSE: consumer_key = 0x00CD; break; // HID_CONSUMER_PLAY_PAUSE
+                    case KC_MAIL: consumer_key = 0x018A; break; // HID_CONSUMER_EMAIL_READER
+                    case KC_CALCULATOR: consumer_key = 0x0192; break; // HID_CONSUMER_CALCULATOR
+                    case KC_MY_COMPUTER: consumer_key = 0x0194; break; // HID_CONSUMER_MY_COMPUTER
+                    case KC_WWW_SEARCH: consumer_key = 0x0221; break; // HID_CONSUMER_WWW_SEARCH
+                    case KC_WWW_HOME: consumer_key = 0x0223; break; // HID_CONSUMER_WWW_HOME
+                    case KC_WWW_BACK: consumer_key = 0x0224; break; // HID_CONSUMER_WWW_BACK
+                    case KC_WWW_FORWARD: consumer_key = 0x0225; break; // HID_CONSUMER_WWW_FORWARD
+                    case KC_WWW_STOP: consumer_key = 0x0226; break; // HID_CONSUMER_WWW_STOP
+                    case KC_WWW_REFRESH: consumer_key = 0x0227; break; // HID_CONSUMER_WWW_REFRESH
+                    case KC_WWW_FAVORITES: consumer_key = 0x022A; break; // HID_CONSUMER_WWW_FAVORITES
+                    case KC_BRIGHTNESS_UP: consumer_key = 0x006F; break; // HID_CONSUMER_BRIGHTNESS_INCREMENT
+                    case KC_BRIGHTNESS_DOWN: consumer_key = 0x0070; break; // HID_CONSUMER_BRIGHTNESS_DECREMENT
+                    default: consumer_key = 0; break;
+                }
+                continue;
+                break;
             //普通按键处理
             default:
                 if (kc != KC_NO) {
@@ -175,6 +205,7 @@ static hid_report_t build_hid_report(uint8_t _layer)
         }
     }
 
+    // 处理键盘报告
     if (keynum <= 6) {
         kbd_hid_report.report_id = REPORT_ID_KEYBOARD;
         kbd_hid_report.keyboard_report.modifier = modify;
@@ -194,8 +225,53 @@ static hid_report_t build_hid_report(uint8_t _layer)
         }
     }
     
+    // 处理消费者控制报告（多媒体按键）
+    if (consumer_key != 0) {
+        // 检查是否是新的多媒体按键按下
+        if (!consumer_key_active || last_consumer_key != consumer_key) {
+            consumer_hid_report.report_id = REPORT_ID_CONSUMER;
+            consumer_hid_report.consumer_report.keycode = consumer_key;
+            
+            // 记录多媒体按键按下时间和状态
+            consumer_key_press_time = xTaskGetTickCount();
+            last_consumer_key = consumer_key;
+            consumer_key_active = true;
+            
+            // 发送消费者控制报告（只发送一次）
+            tinyusb_hid_keyboard_report(consumer_hid_report);
+        } else {
+            // 同一个多媒体按键持续按下，检查是否需要重复发送
+            uint32_t current_time = xTaskGetTickCount();
+            uint32_t press_duration = current_time - consumer_key_press_time;
+            
+            // 如果按键持续时间超过500ms，则每200ms发送一次增量控制
+            if (press_duration > pdMS_TO_TICKS(500)) {
+                static uint32_t last_repeat_time = 0;
+                if (current_time - last_repeat_time > pdMS_TO_TICKS(200)) {
+                    consumer_hid_report.report_id = REPORT_ID_CONSUMER;
+                    consumer_hid_report.consumer_report.keycode = consumer_key;
+                    
+                    // 发送消费者控制报告
+                    tinyusb_hid_keyboard_report(consumer_hid_report);
+                    
+                    last_repeat_time = current_time;
+                }
+            }
+        }
+    } else {
+        // 检查是否需要发送多媒体按键释放报告
+        if (consumer_key_active) {
+            // 发送释放报告
+            consumer_hid_report.report_id = REPORT_ID_CONSUMER;
+            consumer_hid_report.consumer_report.keycode = 0;
+            tinyusb_hid_keyboard_report(consumer_hid_report);
+            
+            consumer_key_active = false;
+        }
+    }
+    
+    // 始终发送键盘报告（不进行特殊处理）
     tinyusb_hid_keyboard_report(kbd_hid_report);
-
 
     free(keymap);
 

@@ -1184,6 +1184,37 @@
             0x0061: 'KC_KP_9',
             0x0062: 'KC_KP_0',
             0x0063: 'KC_KP_DOT',
+            // 多媒体按键
+            0x00A8: '静音',
+            0x00A9: '音量+',
+            0x00AA: '音量-',
+            0x00AB: '下一曲',
+            0x00AC: '上一曲',
+            0x00AE: '播放/暂停',
+            0x00B1: '邮件',
+            0x00B2: '计算器',
+            0x00B3: '我的电脑',
+            0x00B4: '网页搜索',
+            0x00B5: '主页',
+            0x00B6: '后退',
+            0x00B7: '前进',
+            0x00B8: '停止',
+            0x00B9: '刷新',
+            0x00BA: '收藏夹',
+            0x00BB: '媒体快进',
+            0x00BC: '媒体快退',
+            0x00BD: '亮度+',
+            0x00BE: '亮度-',
+            // 标准控制键 (修饰键)
+            0x00E0: 'KC_LEFT_CTRL',
+            0x00E1: 'KC_LEFT_SHIFT',
+            0x00E2: 'KC_LEFT_ALT',
+            0x00E3: 'KC_LEFT_GUI',
+            0x00E4: 'KC_RIGHT_CTRL',
+            0x00E5: 'KC_RIGHT_SHIFT',
+            0x00E6: 'KC_RIGHT_ALT',
+            0x00E7: 'KC_RIGHT_GUI',
+            // 扩展修饰键
             0x0100: 'KC_LCTRL',
             0x0200: 'KC_LSHIFT',
             0x0400: 'KC_LALT',
@@ -2307,16 +2338,21 @@
             if (keyCode >= 0x003A && keyCode <= 0x0045) return '功能键';
             // 方向键 (0x004F-0x0052)
             if (keyCode >= 0x004F && keyCode <= 0x0052) return '方向键';
-            // 控制键 (Ctrl, Alt, Shift, Win: 0x0100-0x0800)
-            if (keyCode >= 0x0100 && keyCode <= 0x0800) return '控制键';
             // 特殊键 (Enter, Space, Tab, Backspace, etc.)
             if (keyCode >= 0x0028 && keyCode <= 0x0039) return '特殊键';
             // 小键盘键 (0x0053-0x0063)
             if (keyCode >= 0x0053 && keyCode <= 0x0063) return '特殊键';
             // 其他系统键
             if (keyCode >= 0x0046 && keyCode <= 0x004E) return '特殊键';
-            // 多媒体键
-            if (keyCode >= 0x00E0 && keyCode <= 0x00FF) return '多媒体键';
+            // 多媒体键 (根据keycodes.h中的定义)
+            // 音频控制键: KC_AUDIO_MUTE (0x00A8) 到 KC_MEDIA_SELECT (0x00AF)
+            if (keyCode >= 0x00A8 && keyCode <= 0x00AF) return '多媒体键';
+            // 媒体控制键: KC_MEDIA_EJECT (0x00B0) 到 KC_MEDIA_REWIND (0x00BC)
+            if (keyCode >= 0x00B0 && keyCode <= 0x00BC) return '多媒体键';
+            // 亮度控制键: KC_BRIGHTNESS_UP (0x00BD) 到 KC_BRIGHTNESS_DOWN (0x00BE)
+            if (keyCode >= 0x00BD && keyCode <= 0x00BE) return '多媒体键';
+            // 标准控制键 (Ctrl, Shift, Alt, Win: 0x00E0-0x00E7)
+            if (keyCode >= 0x00E0 && keyCode <= 0x00E7) return '控制键';
             
             return '其他键';
         }
