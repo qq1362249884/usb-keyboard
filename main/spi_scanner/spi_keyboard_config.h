@@ -6,7 +6,7 @@
 // ===============================
 // SPI配置参数
 // ===============================
-#define SPI_HOST    SPI2_HOST   // 使用 SPI2 主机
+#define SPI_HOST    SPI3_HOST   // 使用 SPI2 主机
 #define PIN_NUM_QH   10         //74hc165 QH引脚
 #define PIN_NUM_SCLK 11         //74hc165 CLK引脚
 #define PIN_NUM_PL   12         //74hc165 PL引脚

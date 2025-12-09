@@ -1,0 +1,23 @@
+{
+	"folders": [
+		{
+			"path": "../.."
+		},
+		{
+			"path": "../../../github/AutoPiano"
+		},
+		{
+			"path": "E:/ESP_IDF/esp-adf/examples/get-started/play_mp3_control"
+		}
+	],
+	"settings": {
+		"files.associations": {
+			"numbers": "c",
+			"joystick.h": "c",
+			"adc_cali_scheme.h": "c",
+			"adc_cali.h": "c",
+			"regex": "c",
+			"oled_menu_display.h": "c"
+		}
+	}
+}

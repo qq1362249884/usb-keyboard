@@ -490,7 +490,7 @@ esp_err_t kob_ws2812b_init(led_strip_handle_t *led_strip)
     led_strip_spi_config_t spi_config = {
         .clk_src = SOC_MOD_CLK_XTAL, // different clock source can lead to different power consumption
         .flags.with_dma = true,         // Using DMA can improve performance and help drive more LEDs
-        .spi_bus = SPI3_HOST,           // SPI bus ID
+        .spi_bus = SPI2_HOST,           // SPI bus ID
     };
 
     // LED Strip object handle

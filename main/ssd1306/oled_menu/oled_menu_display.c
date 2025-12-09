@@ -1,6 +1,7 @@
 #include "oled_menu_display.h"
 #include "spi_scanner/keymap_manager.h"
 #include "nvs_manager/unified_nvs_manager.h"
+#include "audio_player/mp3_player.h"
 
 // 内部static函数声明
 static esp_err_t menu_nvs_init(void);
@@ -9,9 +10,7 @@ static void save_menu_config(void);
 static void menu_init(uint8_t fontSize);
 static void joystick_task(void *arg);
 static void menu_task(void *arg);
-
-
-
+static void menuActionMp3Player(void);
 
 // 定义菜单项索引枚举，使菜单层次关系更加直观
 // 注意：新增菜单项时，请严格按照"根菜单→一级菜单→二级菜单→三级菜单"的顺序添加
@@ -28,6 +27,7 @@ typedef enum {
     
     // 二级菜单 - 系统设置的子项
     MENU_ID_TIME_SETTINGS,         // 时间设置
+    MENU_ID_MP3_PLAYER,            // MP3播放器
     
     // 二级菜单 - 键盘选项的子项
     MENU_ID_MAPPING_LAYER,         // 映射层
@@ -215,6 +215,7 @@ MenuItemDef menuItems[] = {
     
     // 二级菜单 - 系统设置的子项
     {"时间设置", MENU_TYPE_TEXT, NULL, 0, 0, NULL, MENU_ID_SYS_SETTINGS},
+    {"MP3播放器", MENU_TYPE_ACTION, NULL, 0, 0, menuActionMp3Player, MENU_ID_SYS_SETTINGS},
     
     // 二级菜单 - 键盘选项的子项
     {"映射层", MENU_TYPE_ACTION, NULL, 0, 0, menuActionMappingLayer, MENU_ID_KEYBOARD_OPTIONS},
@@ -265,7 +266,7 @@ static void menu_init(uint8_t fontSize) {
 /**
  * @brief 摇杆扫描任务 - 检测摇杆方向和按键状态
  */
-static void joystick_task(void *arg) {
+void joystick_task(void *arg) {
 
     sw_gpio_init();
     
@@ -302,10 +303,10 @@ static void joystick_task(void *arg) {
                 // 方向改变，发送初始事件
                 switch (currentState.direction) {
                     case JOYSTICK_UP:
-                        xQueueSend(joystickQueue, &(uint8_t){MENU_OP_UP}, 0);
+                        xQueueSend(joystickQueue, &(uint8_t){MENU_OP_DOWN}, 0);
                         break;
                     case JOYSTICK_DOWN:
-                        xQueueSend(joystickQueue, &(uint8_t){MENU_OP_DOWN}, 0);
+                        xQueueSend(joystickQueue, &(uint8_t){MENU_OP_UP}, 0);
                         break;
                     case JOYSTICK_LEFT:
                         xQueueSend(joystickQueue, &(uint8_t){MENU_OP_LEFT}, 0); 
@@ -328,10 +329,10 @@ static void joystick_task(void *arg) {
                     // 发送重复事件
                     switch (currentState.direction) {
                         case JOYSTICK_UP:
-                            xQueueSend(joystickQueue, &(uint8_t){MENU_OP_UP}, 0);
+                            xQueueSend(joystickQueue, &(uint8_t){MENU_OP_DOWN}, 0);
                             break;
                         case JOYSTICK_DOWN:
-                            xQueueSend(joystickQueue, &(uint8_t){MENU_OP_DOWN}, 0);
+                            xQueueSend(joystickQueue, &(uint8_t){MENU_OP_UP}, 0);
                             break;
                         case JOYSTICK_LEFT:
                             xQueueSend(joystickQueue, &(uint8_t){MENU_OP_LEFT}, 0); 
@@ -391,9 +392,7 @@ static void joystick_task(void *arg) {
     }
 }
 
-/**
- * @brief 菜单显示任务
- */
+
 static void menu_task(void *arg) {
     // 初始化OLED显示
     OLED_Init();    
@@ -462,4 +461,42 @@ QueueHandle_t get_joystick_queue(void) {
 
 MenuManager* get_menu_manager(void) {
     return &menuManager;
+}
+
+/**
+ * @brief MP3播放器菜单项动作函数
+ * 进入MP3播放器控制模式，监控摇杆状态来控制MP3播放
+ */
+static void menuActionMp3Player(void) {
+
+    MP3Player* player = mp3_player_init();
+    if (player == NULL) {
+        return;
+    }
+    
+    // 等待用户输入
+    bool confirmed = false;
+    while (!confirmed) {
+        uint8_t op; // 改为uint8_t类型，与joystick_task中发送的数据类型匹配
+        if (xQueueReceive(get_joystick_queue(), &op, 100 / portTICK_PERIOD_MS) == pdTRUE) {
+            switch (op) {
+                case MENU_OP_UP:
+                    mp3_player_volume_up(player);
+                    break;
+                case MENU_OP_DOWN:
+                    mp3_player_volume_down(player);
+                    break;
+                case MENU_OP_ENTER:
+                    mp3_player_play_pause(player);
+                    break;
+                case MENU_OP_BACK:
+                    mp3_player_stop_playback(player);
+                    mp3_player_deinit(player);
+                    confirmed = true;
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
 }

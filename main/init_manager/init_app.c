@@ -10,6 +10,7 @@
 #include "spi_scanner/keymap_manager.h"
 #include "wifi_app/wifi_app.h"
 #include "nvs_manager/unified_nvs_manager.h"
+#include "audio_player/mp3_player.h"
 #include "esp_log.h"
 
 // 全局统一NVS管理器句柄
@@ -195,6 +196,24 @@ static esp_err_t init_wifi(void) {
 }
 
 /**
+ * @brief MP3播放器模块初始化函数
+ */
+static esp_err_t init_mp3_player(void) {
+    // MP3播放器的初始化会在mp3_player_init内部完成
+    return ESP_OK;
+}
+
+/**
+ * @brief MP3播放器模块配置应用函数
+ */
+static esp_err_t apply_mp3_player_config(void) {
+    // MP3播放器不再在系统初始化时自动启动，而是由OLED菜单控制
+    // 只做初始化准备，不启动播放任务
+    ESP_LOGI(INIT_APP_TAG, "MP3 player initialized, ready to be started by menu");
+    return ESP_OK;
+}
+
+/**
  * @brief WiFi模块配置应用函数
  */
 static esp_err_t apply_wifi_config(void) {
@@ -305,6 +324,16 @@ esp_err_t app_init(void) {
         .ready_sem = NULL
     };
 
+    module_init_desc_t mp3_player_desc = {
+        .module_id = MODULE_MP3_PLAYER,
+        .init_func = init_mp3_player,
+        .apply_config_func = apply_mp3_player_config,
+        .dependencies = {}, // MP3播放器没有依赖
+        .dependency_count = 0,
+        .state = INIT_STATE_UNINITIALIZED,
+        .ready_sem = NULL
+    };
+
     
     // 注册所有模块
     ret = init_manager_register_module(&nvs_desc);
@@ -334,6 +363,12 @@ esp_err_t app_init(void) {
     ret = init_manager_register_module(&wifi_desc);
     if (ret != ESP_OK) {
         ESP_LOGE(INIT_APP_TAG, "Failed to register WiFi module: %s", esp_err_to_name(ret));
+        return ret;
+    }
+    
+    ret = init_manager_register_module(&mp3_player_desc);
+    if (ret != ESP_OK) {
+        ESP_LOGE(INIT_APP_TAG, "Failed to register MP3 player module: %s", esp_err_to_name(ret));
         return ret;
     }
     
@@ -386,6 +421,11 @@ esp_err_t app_init(void) {
     ret = init_manager_apply_module_config(MODULE_WIFI);
     if (ret != ESP_OK) {
         ESP_LOGE(INIT_APP_TAG, "Failed to apply WiFi configuration: %s", esp_err_to_name(ret));
+    }
+    
+    ret = init_manager_apply_module_config(MODULE_MP3_PLAYER);
+    if (ret != ESP_OK) {
+        ESP_LOGE(INIT_APP_TAG, "Failed to apply MP3 player configuration: %s", esp_err_to_name(ret));
     }
     
     return ESP_OK;

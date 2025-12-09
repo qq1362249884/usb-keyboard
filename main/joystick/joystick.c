@@ -3,7 +3,7 @@
 
 
 //全局变量定义
-//static const char *TAG = "app_joystick";
+static const char *TAG = "app_joystick";
 
 
 // 中值滤波参数定义
@@ -54,8 +54,8 @@ void sw_gpio_init(void) {
         .atten = ADC_ATTEN_DB_12,
         .bitwidth = ADC_BITWIDTH_DEFAULT,
     };
-    ESP_ERROR_CHECK(adc_oneshot_config_channel(adc1_handle, ADC_CHANNEL_0, &channel_config));
     ESP_ERROR_CHECK(adc_oneshot_config_channel(adc1_handle, ADC_CHANNEL_1, &channel_config));
+    ESP_ERROR_CHECK(adc_oneshot_config_channel(adc1_handle, ADC_CHANNEL_2, &channel_config));
     
     // 初始化ADC校准
     adc_cali_curve_fitting_config_t cali_config = {
@@ -119,14 +119,24 @@ joystick_state_t get_joystick_direction()
     
     // 读取原始ADC值
     int raw_1, raw_2;
-    ESP_ERROR_CHECK(adc_oneshot_read(adc1_handle, ADC_CHANNEL_0, &raw_1));
-    ESP_ERROR_CHECK(adc_oneshot_read(adc1_handle, ADC_CHANNEL_1, &raw_2));
+    esp_err_t ret1 = adc_oneshot_read(adc1_handle, ADC_CHANNEL_1, &raw_1);
+    esp_err_t ret2 = adc_oneshot_read(adc1_handle, ADC_CHANNEL_2, &raw_2);
+    vTaskDelay(5 / portTICK_PERIOD_MS);
+
+    // 处理ADC读取错误
+    if (ret1 != ESP_OK || ret2 != ESP_OK) {
+        ESP_LOGW(TAG, "ADC read failed: %s, %s", esp_err_to_name(ret1), esp_err_to_name(ret2));
+        // 返回中心位置，避免系统崩溃
+        state.direction = JOYSTICK_CENTER;
+        state.press_type = detect_button_press();
+        return state;
+    }
 
     // 应用中值滤波
     int filtered_1 = median_filter(0, raw_1);
     int filtered_2 = median_filter(1, raw_2);
 
-    //ESP_LOGI(TAG, "ADC: %d, %d", filtered_1, filtered_2);
+    // ESP_LOGI(TAG, "ADC原始值: %d, %d | 滤波后值: %d, %d", raw_1, raw_2, filtered_1, filtered_2);
 
     // 检测按键按下的类型
     state.press_type = detect_button_press();

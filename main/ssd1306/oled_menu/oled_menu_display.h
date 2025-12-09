@@ -124,6 +124,7 @@ MenuManager* get_menu_manager(void);
  */
 void set_unified_nvs_manager(unified_nvs_manager_t* manager);
 
+
 #ifdef __cplusplus
 }
 #endif

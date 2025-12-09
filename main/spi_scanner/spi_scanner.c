@@ -39,7 +39,7 @@ static void spi_hid_init(void)
 
     spi_device_interface_config_t devcfg = {
         .clock_speed_hz = 1000000,            //Clock out at 1MHz
-        .mode = 2,                            //SPI mode 0
+        .mode = 2,                            //SPI mode 2
         .spics_io_num = -1,                   //CS pin
         .queue_size = 1,                      //We want to be able to queue 7 transactions at a time
     };
@@ -108,6 +108,7 @@ static hid_report_t build_hid_report(uint8_t _layer)
         for(uint16_t j = 0; j < bit_index; j++) { 
             uint16_t key_index = i * 8 + j;
             bool current_state = (received_data[i] & (0x80 >> j)) != 0;
+            // ESP_LOGI("usb_spi", "key_pressed_data: %d", received_data[i]);
             bool prev_state = (prev_key_state[i] & (0x80 >> j)) != 0;
             
             // 检测按键状态变化
@@ -122,7 +123,7 @@ static hid_report_t build_hid_report(uint8_t _layer)
             
             if (current_state) {
                 keymap->key_pressed_data[keymap->key_pressed_num++] = key_index;
-                //ESP_LOGI("usb_spi", "key_pressed_data: %d", key_index);
+                // ESP_LOGI("usb_spi", "key_pressed_data: %d", key_index);
             } else {
                 keymap->key_release_num++;
             }

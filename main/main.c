@@ -2,6 +2,7 @@
 #include "freertos/task.h"
 #include "init_app.h"
 #include "esp_log.h"
+#include "oled_menu_display.h"
 
 static const char *TAG = "MAIN";
 
@@ -15,8 +16,7 @@ void app_main(void)
         ESP_LOGE(TAG, "Application initialization failed: %s", esp_err_to_name(ret));
         // 即使初始化失败，也尝试继续运行，以便进行调试
     }
-    
-    ESP_LOGI(TAG, "Application started successfully");
+
     
     // 应用程序主循环可以在这里添加（如果需要）
     // 但在这个项目中，各个功能已经在各自的任务中实现

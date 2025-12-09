@@ -11,7 +11,8 @@ set(src_dirs
                 ssd1306/oled_action
                 "../hid_device"
                 wifi_app
-                init_manager)
+                init_manager
+                audio_player)
 
 set(include_dirs 
                 "."
@@ -26,7 +27,8 @@ set(include_dirs
                 ssd1306/oled_driver
                 ssd1306/oled_action
                 "../hid_device"
-                wifi_app)
+                wifi_app
+                audio_player)
 
 set(requires esp_timer
              driver
@@ -36,6 +38,12 @@ set(requires esp_timer
              esp_wifi
              usb
              esp_adc
+             audio_stream
+             audio_sal
+             audio_hal 
+             esp_dispatcher 
+             esp_peripherals 
+             display_service
              )
 
 # 定义需要嵌入到固件中的静态文件
@@ -49,6 +57,9 @@ idf_component_register(SRC_DIRS ${src_dirs}
                        )
 
 idf_component_get_property(tusb_lib espressif__tinyusb COMPONENT_LIB)
+idf_component_get_property(audio_board_lib audio_board COMPONENT_LIB)
+set_property(TARGET ${audio_board_lib} APPEND PROPERTY INTERFACE_LINK_LIBRARIES ${COMPONENT_LIB})
 
 cmake_policy(SET CMP0079 NEW)
 target_link_libraries(${tusb_lib} PRIVATE ${COMPONENT_LIB})
+

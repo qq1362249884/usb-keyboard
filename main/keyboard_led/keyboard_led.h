@@ -17,7 +17,7 @@
 
 //宏定义位置
 #define WS2812B_POWER_PIN   0
-#define WS2812B_DATA_PIN    17
+#define WS2812B_DATA_PIN    46
 #define WS2812B_NUM         17
 
 // 使用软件控制灯珠亮度为0代替关闭电源

@@ -15,7 +15,7 @@
 #include "esp_timer.h"
 
 
-#define JOYSTICK_SW_PIN 3
+#define JOYSTICK_SW_PIN 1
 
 // 定义方向和旋转的枚举类型
 // 采用欧几里得距离动态判断方向，提高准确性和灵活性

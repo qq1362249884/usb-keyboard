@@ -2,6 +2,7 @@
 cmake_minimum_required(VERSION 3.16)
 
 # 引用ESP-IDF工具链
+include(E:/ESP_IDF/esp-adf/CMakeLists.txt)
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 
 # 定义项目名称
